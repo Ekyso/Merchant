@@ -16,12 +16,11 @@ public sealed record ShopkeepHaggle(NPC Buyer, Item ForSale, float MinMult, floa
         DoneFailed,
     }
 
-    private const double timeoutMS = 1500.0;
-    private TimeSpan timeout = TimeSpan.FromMilliseconds(timeoutMS);
-    public PointerState state = PointerState.Begin;
+    private const double timeoutMS = 1000.0;
+    public readonly StateManager<PointerState> state = new(PointerState.Begin);
     public bool IsReadyToStart => !IsPointerMoving && Game1.activeClickableMenu is DialogueBox { transitioning: false };
-    public bool IsPointerMoving => state == PointerState.Increase || state == PointerState.Decrease;
-    public bool IsDone => state == PointerState.DoneSuccess || state == PointerState.DoneFailed;
+    public bool IsPointerMoving => state.Current == PointerState.Increase || state.Current == PointerState.Decrease;
+    public bool IsDone => state.Current == PointerState.DoneSuccess || state.Current == PointerState.DoneFailed;
     private float pointer = 0;
 
     public int Count { get; private set; } = 0;
@@ -36,8 +35,7 @@ public sealed record ShopkeepHaggle(NPC Buyer, Item ForSale, float MinMult, floa
 
     public void Initialize()
     {
-        Dialogue dialogue = new(Buyer, haggleDialogueKey, $"TODO: I want to buy {ForSale.DisplayName}");
-        SetNextDialogue(dialogue);
+        SetNextDialogue($"TODO: I want to buy {ForSale.DisplayName} ({Count})", true);
         CalculateBounds();
     }
 
@@ -65,55 +63,47 @@ public sealed record ShopkeepHaggle(NPC Buyer, Item ForSale, float MinMult, floa
         );
     }
 
-    private void SetNextDialogue(Dialogue dialogue, bool transitioning = true)
+    private void SetNextDialogue(string dialogueStr, bool transitioning)
     {
-        Game1.activeClickableMenu = new DialogueBox(dialogue) { showTyping = false, transitioning = transitioning };
+        Game1.activeClickableMenu = new DialogueBox(new Dialogue(Buyer, haggleDialogueKey, dialogueStr))
+        {
+            showTyping = false,
+            transitioning = transitioning,
+            transitionInitialized = !transitioning,
+        };
     }
 
     public bool BeginHaggleRound()
     {
-        if (state == PointerState.DoneSuccess || state == PointerState.DoneFailed)
+        if (state.Current == PointerState.DoneSuccess || state.Current == PointerState.DoneFailed)
         {
             Game1.exitActiveMenu();
             return false;
         }
+        SetNextDialogue($"TODO: I want to buy {ForSale.DisplayName} ({Count})", false);
         pointer = 0f;
-        state = PointerState.Increase;
-        timeout = TimeSpan.FromMilliseconds(timeoutMS);
+        state.Current = PointerState.Increase;
+        state.SetNext(PointerState.Decrease, timeoutMS, IncreaseChange);
         Count++;
         return true;
     }
 
+    private void IncreaseChange(PointerState oldState, PointerState newState)
+    {
+        state.SetNext(Count >= MaxCount ? PointerState.DoneFailed : PointerState.Begin, timeoutMS);
+    }
+
     public void Update(GameTime time)
     {
-        if (state == PointerState.Begin || state == PointerState.DoneSuccess || state == PointerState.DoneFailed)
+        state.Update(time);
+        switch (state.Current)
         {
-            return;
-        }
-
-        timeout -= time.ElapsedGameTime;
-        if (timeout <= TimeSpan.Zero)
-        {
-            if (state == PointerState.Decrease)
-            {
-                state = Count >= MaxCount ? PointerState.DoneFailed : PointerState.Begin;
-            }
-            else
-            {
-                state = PointerState.Decrease;
-                timeout = TimeSpan.FromMilliseconds(timeoutMS);
-            }
-        }
-        else
-        {
-            if (state == PointerState.Increase)
-            {
-                pointer = (float)(1.0 - (timeout.TotalMilliseconds / timeoutMS));
-            }
-            else
-            {
-                pointer = (float)(timeout.TotalMilliseconds / timeoutMS);
-            }
+            case PointerState.Increase:
+                pointer = (float)(1.0 - (state.Timer.TotalMilliseconds / timeoutMS));
+                break;
+            case PointerState.Decrease:
+                pointer = (float)(state.Timer.TotalMilliseconds / timeoutMS);
+                break;
         }
     }
 
@@ -122,17 +112,17 @@ public sealed record ShopkeepHaggle(NPC Buyer, Item ForSale, float MinMult, floa
         if (pointer <= TargetPointer)
         {
             PickedMult = Utility.Lerp(MinMult, MaxMult, pointer);
-            state = PointerState.DoneSuccess;
+            state.Current = PointerState.DoneSuccess;
         }
         else if (Count >= MaxCount)
         {
-            state = PointerState.DoneFailed;
+            state.Current = PointerState.DoneFailed;
         }
         else
         {
             TargetPointer = Utility.Lerp(TargetPointer, pointer, Random.Shared.NextSingle());
             CalculateTargetPointerBounds();
-            state = PointerState.Begin;
+            state.Current = PointerState.Begin;
         }
     }
 

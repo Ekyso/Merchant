@@ -27,9 +27,10 @@ public sealed class ShopkeepGame : IMinigame
         Unloaded,
     }
 
-    private GameLoopState state = GameLoopState.Start;
-    private GameLoopState stateNext = GameLoopState.Haggle;
-    private TimeSpan stateTransition = TimeSpan.Zero;
+    // private GameLoopState state = GameLoopState.Start;
+    // private GameLoopState stateNext = GameLoopState.Haggle;
+    // private TimeSpan stateTransition = TimeSpan.Zero;
+    private readonly StateManager<GameLoopState> state = new(GameLoopState.Start);
     #endregion
 
     #region settings
@@ -60,7 +61,7 @@ public sealed class ShopkeepGame : IMinigame
 
     private void OnRendered(object? sender, RenderedEventArgs e)
     {
-        if (state == GameLoopState.Unloaded)
+        if (state.Current == GameLoopState.Unloaded)
             return;
         // restore minigame after render
         if (Game1.currentMinigame == null)
@@ -97,7 +98,7 @@ public sealed class ShopkeepGame : IMinigame
 
     public void unload()
     {
-        if (state == GameLoopState.Unloaded)
+        if (state.Current == GameLoopState.Unloaded)
             return;
         ModEntry.LogDebug("ShopkeepGame.unload");
         haggling = null;
@@ -105,7 +106,7 @@ public sealed class ShopkeepGame : IMinigame
         helper.Events.Display.Rendered -= OnRendered;
         Game1.activeClickableMenu = null;
         Game1.displayHUD = true;
-        state = GameLoopState.Unloaded;
+        state.Current = GameLoopState.Unloaded;
     }
 
     public bool forceQuit()
@@ -149,18 +150,9 @@ public sealed class ShopkeepGame : IMinigame
             Game1.activeClickableMenu.update(time);
             Game1.PopUIMode();
         }
-        // state transition
-        if (stateTransition > TimeSpan.Zero)
-        {
-            stateTransition -= time.ElapsedGameTime;
-            if (stateTransition <= TimeSpan.Zero)
-            {
-                ModEntry.LogDebug($"ShopkeepGame.tick state {state} -> {stateNext} ({gameTimer})");
-                state = stateNext;
-                stateTransition = TimeSpan.Zero;
-            }
-        }
-        switch (state)
+        state.Update(time);
+        // state behavior
+        switch (state.Current)
         {
             case GameLoopState.Start:
                 DoStart(time);
@@ -176,29 +168,12 @@ public sealed class ShopkeepGame : IMinigame
                 return true;
         }
     }
-
-    private void SetState(GameLoopState next)
-    {
-        state = next;
-        stateNext = next;
-        stateTransition = TimeSpan.Zero;
-    }
-
-    private void SetNextState(GameLoopState next, double transition, bool force = false)
-    {
-        ModEntry.LogDebug($"ShopkeepGame.SetNextState: {next} {transition}");
-        if (force || stateTransition == TimeSpan.Zero)
-        {
-            stateNext = next;
-            stateTransition = TimeSpan.FromMilliseconds(transition);
-        }
-    }
     #endregion
 
     #region gameloop start
     private void DoStart(GameTime time)
     {
-        SetNextState(GameLoopState.Browse, 100);
+        state.SetNext(GameLoopState.Browse, 100);
     }
     #endregion
 
@@ -211,7 +186,7 @@ public sealed class ShopkeepGame : IMinigame
         {
             if (haggling.IsReadyToStart)
             {
-                SetState(GameLoopState.Haggle);
+                state.Current = GameLoopState.Haggle;
             }
         }
         else
@@ -219,7 +194,7 @@ public sealed class ShopkeepGame : IMinigame
             string buyerName = "Krobus";
             if (browsingHelper.MakeShopkeepGameBuyer(buyerName) is not NPC buyer)
             {
-                SetState(GameLoopState.Exit);
+                state.Current = GameLoopState.Exit;
                 return;
             }
             haggling = new(buyer, ItemRegistry.Create("(O)Book_Void"), 0.5f, 1.5f, 3);
@@ -235,7 +210,7 @@ public sealed class ShopkeepGame : IMinigame
     {
         if (haggling == null)
         {
-            SetState(GameLoopState.Browse);
+            state.Current = GameLoopState.Browse;
             return;
         }
 
@@ -247,7 +222,7 @@ public sealed class ShopkeepGame : IMinigame
         {
             ModEntry.LogDebug($"Haggle Done {haggling.Count} {haggling.state} {haggling.PickedMult}");
             haggling = null;
-            SetState(GameLoopState.Exit);
+            state.Current = GameLoopState.Exit;
         }
     }
     #endregion
@@ -256,11 +231,9 @@ public sealed class ShopkeepGame : IMinigame
     public void receiveLeftClick(int x, int y, bool playSound = true)
     {
         ModEntry.LogDebug($"ShopkeepGame.receiveLeftClick: {x} {y} {playSound}");
-        switch (state)
+        if (state.Current == GameLoopState.Haggle)
         {
-            case GameLoopState.Haggle:
-                haggling?.Pick();
-                break;
+            haggling?.Pick();
         }
     }
 
