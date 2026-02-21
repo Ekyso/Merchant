@@ -20,12 +20,12 @@ Haggling gameplay
 Shop stats
 Influences how many customers you get in "open shop" session
 - Friendship: higher friendship with an NPC makes them more likely to visit your shop
-- Renown: you can boost number of customers by investing in promotions (once that is unlocked), this decreases over time
+- Marketing: you can boost number of customers by investing in promotions, this decreases over time
 Since haggling is capped to 6, every extra customer is one more "auto buy"
 
 Influences your minimum and maximum haggling range
 - Decor: a nebulous number, calculated from furniture that are not tables with held items in the shop location. Increases haggling range
-- Haggling level: not a true skill, but the amount of sales made via haggling translate to some level between 1 and 10 amd gives a permanent boost up to 0.50
+- Haggling level: not a true skill, but the amount of sales made via manual haggling translate to some level between 1 and 10 amd gives a permanent boost up to 0.50
 
 Other mods can also register bonuses
 

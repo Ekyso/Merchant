@@ -1,6 +1,9 @@
+global using SObject = StardewValley.Object;
 using System.Diagnostics;
+using Merchant.Management;
+using Merchant.Misc;
 using StardewModdingAPI;
-using StardewModdingAPI.Events;
+using StardewValley;
 
 namespace Merchant;
 
@@ -13,11 +16,19 @@ public sealed class ModEntry : Mod
 #endif
     public const string ModId = "mushymato.Merchant";
     private static IMonitor? mon;
+    internal static IModHelper help = null!;
 
     public override void Entry(IModHelper helper)
     {
         I18n.Init(helper.Translation);
         mon = Monitor;
+        help = helper;
+
+        AssetManager.Register();
+
+#if DEBUG
+        DebugEntry(helper);
+#endif
     }
 
     /// <summary>SMAPI static monitor Log wrapper</summary>
@@ -44,4 +55,29 @@ public sealed class ModEntry : Mod
     {
         mon!.Log(msg, level);
     }
+
+    public static bool InteractShowMerchantMenu(StardewValley.Object machine, GameLocation location, Farmer player)
+    {
+        return ShopkeepGame.StartMinigame(help, Game1.currentLocation, Game1.player) != null;
+    }
+
+#if DEBUG
+    private void DebugEntry(IModHelper helper)
+    {
+        helper.ConsoleCommands.Add("merchant-tst", "Begin merchant minigame here", TestMerchantGame);
+    }
+
+    private void TestMerchantGame(string arg1, string[] arg2)
+    {
+        if (Game1.currentMinigame is ShopkeepGame)
+        {
+            Game1.currentMinigame.unload();
+            Game1.currentMinigame = null;
+        }
+        else
+        {
+            ShopkeepGame.StartMinigame(Helper, Game1.currentLocation, Game1.player);
+        }
+    }
+#endif
 }
