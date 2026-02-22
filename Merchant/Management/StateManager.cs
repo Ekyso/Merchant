@@ -5,6 +5,7 @@ namespace Merchant.Management;
 public sealed class StateManager<T>(T defaultValue)
     where T : Enum
 {
+    public delegate void stateChanged(T oldState, T newState);
     public T Current
     {
         get => field;
@@ -19,15 +20,18 @@ public sealed class StateManager<T>(T defaultValue)
     } = defaultValue;
     public T Next { get; private set; } = defaultValue;
     public TimeSpan Timer { get; private set; } = TimeSpan.Zero;
-    private Action<T, T>? changeCallback = null;
+    private double timerTotalMS = -1;
+    public float TimerProgress => (float)(Timer.TotalMilliseconds / timerTotalMS);
+    private stateChanged? changeCallback = null;
 
-    public void SetNext(T next, double transition, Action<T, T>? onChange = null, bool force = false)
+    public void SetNext(T next, double transition, stateChanged? onChange = null, bool force = false)
     {
         if (force || Timer == TimeSpan.Zero)
         {
             Next = next;
             changeCallback = onChange;
             Timer = TimeSpan.FromMilliseconds(transition);
+            timerTotalMS = transition;
         }
     }
 
@@ -40,7 +44,7 @@ public sealed class StateManager<T>(T defaultValue)
             if (Timer <= TimeSpan.Zero)
             {
                 T old = Current;
-                Action<T, T>? cb = changeCallback;
+                stateChanged? cb = changeCallback;
                 Current = Next;
                 cb?.Invoke(old, Next);
             }

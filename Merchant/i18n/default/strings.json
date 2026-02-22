@@ -1,0 +1,9 @@
+{
+  "bc.cash-register.name": "Cash Register",
+  "bc.cash-register.desc": "A cash register for managing your own shop! Place it down in any shed type farm building to use it.",
+  // default dialogues
+  "speak.haggle.ask": "How much for {0}?$0",
+  "speak.haggle.haggle": "{1}$ is a little too much...$s",
+  "speak.haggle.fail": "I'll buy this from somewhere else...$s",
+  "speak.haggle.success": "Deal! Here's {1}$.$h"
+}

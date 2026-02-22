@@ -13,7 +13,7 @@ Shopkeeping
 Haggling gameplay
 - Potion Craft style
 - Press key on slidey thing to pick a price point, then the customer will counter offer
-- Failure to press for whole cycle means you accept the price as is
+- Failure to press for 2 whole cycle means you accept the price as is
 - Pressing a too high number 1-3 times in a row will fail the haggle with no sale
 - Pressing a number below the customer's price makes them accept immediately and ends the haggle with a sale
 

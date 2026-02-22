@@ -197,8 +197,7 @@ public sealed class ShopkeepGame : IMinigame
                 state.Current = GameLoopState.Exit;
                 return;
             }
-            haggling = new(buyer, ItemRegistry.Create("(O)Book_Void"), 0.5f, 1.5f, 3);
-            haggling.Initialize();
+            haggling = ShopkeepHaggle.Make(player, buyer, ItemRegistry.Create("(O)Book_Void"));
         }
     }
     #endregion
@@ -214,15 +213,13 @@ public sealed class ShopkeepGame : IMinigame
             return;
         }
 
-        if (haggling.IsPointerMoving)
-        {
-            haggling.Update(time);
-        }
-        else if (!haggling.BeginHaggleRound())
+        haggling.Update(time);
+        if (!haggling.BeginHaggleRound())
         {
             ModEntry.LogDebug($"Haggle Done {haggling.Count} {haggling.state} {haggling.PickedMult}");
             haggling = null;
             state.Current = GameLoopState.Exit;
+            return;
         }
     }
     #endregion
