@@ -3,8 +3,15 @@ using StardewValley;
 
 namespace Merchant.Management;
 
-public sealed class ShopkeepBrowsing(GameLocation location)
+public sealed class ShopkeepBrowsing
 {
+    private readonly GameLocation location;
+
+    public ShopkeepBrowsing(GameLocation location)
+    {
+        this.location = location;
+    }
+
     internal CustomerActor? MakeCustomerActor(string npcName)
     {
         if (Game1.getCharacterFromName(npcName) is not NPC sourceNPC)

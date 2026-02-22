@@ -188,7 +188,7 @@ public sealed class ShopkeepGame : IMinigame
         else
         {
             string buyerName = "Krobus";
-            if (browsingHelper.MakeCustomerActor(buyerName) is not NPC buyer)
+            if (browsingHelper.MakeCustomerActor(buyerName) is not CustomerActor buyer)
             {
                 state.Current = GameLoopState.Exit;
                 return;

@@ -1,3 +1,4 @@
+using Merchant.Misc;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
@@ -18,5 +19,17 @@ public sealed class CustomerActor : NPC
         : base(sprite, position, defaultMap, facingDir, name, portrait, eventActor)
     {
         forceOneTileWide.Value = true;
+    }
+
+    public Dialogue GetMerchantDialogue(string key, params object[] substitutions)
+    {
+        string merchantKey = $"{ModEntry.ModId}_{key}";
+        if (TryGetDialogue(merchantKey, substitutions) is Dialogue dialogue)
+            return dialogue;
+        return new Dialogue(
+            this,
+            string.Concat(AssetManager.Asset_Strings, ":", key),
+            AssetManager.LoadString(key, substitutions)
+        );
     }
 }

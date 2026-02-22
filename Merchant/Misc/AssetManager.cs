@@ -10,7 +10,7 @@ namespace Merchant.Misc;
 internal static class AssetManager
 {
     private const string Asset_TextureCashregister = $"{ModEntry.ModId}/cashregister";
-    private const string Asset_Strings = $"{ModEntry.ModId}\\Strings";
+    internal const string Asset_Strings = $"{ModEntry.ModId}\\Strings";
     internal const string CashRegisterId = $"{ModEntry.ModId}_CashRegister";
     internal const string CashRegisterQId = $"(BC){ModEntry.ModId}_CashRegister";
 
