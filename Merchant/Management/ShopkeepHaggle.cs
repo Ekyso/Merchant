@@ -113,7 +113,7 @@ public sealed record ShopkeepHaggle(
                 useNextTargetPnt ? Utility.Lerp(nextTargetPointer, TargetPointer, state.TimerProgress) : TargetPointer
             )
                 - buyerMugShotRect.Width * 4,
-            haggleBarSlideBounds.Y
+            haggleBarSlideBounds.Y - 16
         );
     }
 
@@ -147,7 +147,7 @@ public sealed record ShopkeepHaggle(
         }
 
         if (Count > 0)
-            SetNextDialogue(AssetManager.LoadString("speak.haggle.ask", ForSale.DisplayName), false);
+            SetNextDialogue("Haggle_Ask", false);
         pointer = 0f;
         pointerPitch = -1;
         state.Current = HaggleState.Increase;

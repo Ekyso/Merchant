@@ -7,6 +7,25 @@ namespace Merchant.Management;
 
 public sealed class CustomerActor : NPC
 {
+    internal static CustomerActor? Make(GameLocation location, string npcName)
+    {
+        if (Game1.getCharacterFromName(npcName) is not NPC sourceNPC)
+        {
+            return null;
+        }
+        CustomerActor customerActor = new(
+            new AnimatedSprite(sourceNPC.Sprite.textureName.Value),
+            new Vector2(0, 0),
+            location.NameOrUniqueName,
+            sourceNPC.FacingDirection,
+            sourceNPC.Name,
+            sourceNPC.Portrait,
+            eventActor: true
+        );
+        customerActor.NetFields.CopyFrom(sourceNPC.NetFields);
+        return customerActor;
+    }
+
     public CustomerActor(
         AnimatedSprite sprite,
         Vector2 position,

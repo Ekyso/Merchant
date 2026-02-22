@@ -39,12 +39,12 @@ public sealed class ShopkeepGame : IMinigame
     #endregion
 
     #region setup teardown
-    private ShopkeepGame(IModHelper helper, GameLocation location, Farmer player)
+    private ShopkeepGame(IModHelper helper, GameLocation location, Farmer player, ShopkeepBrowsing browsing)
     {
         this.helper = helper;
         this.location = location;
         this.player = player;
-        this.browsingHelper = new(location);
+        this.browsing = browsing;
         changeScreenSize();
     }
 
@@ -83,7 +83,14 @@ public sealed class ShopkeepGame : IMinigame
             );
             return null;
         }
-        ShopkeepGame shopkeepGame = new(helper, Game1.currentLocation, Game1.player);
+        if (
+            ShopkeepBrowsing.Make(location, player, ["Marnie", "Sam", "Abigail", "Pierre", "Willy", "Krobus"])
+            is not ShopkeepBrowsing browsing
+        )
+        {
+            return null;
+        }
+        ShopkeepGame shopkeepGame = new(helper, location, player, browsing);
         helper.Events.Display.Rendering += shopkeepGame.OnRendering;
         helper.Events.Display.Rendered += shopkeepGame.OnRendered;
         Game1.activeClickableMenu = null;
@@ -174,7 +181,7 @@ public sealed class ShopkeepGame : IMinigame
     #endregion
 
     #region gameloop browse
-    private readonly ShopkeepBrowsing browsingHelper;
+    private readonly ShopkeepBrowsing browsing;
 
     private void DoBrowse(GameTime time)
     {
@@ -185,15 +192,18 @@ public sealed class ShopkeepGame : IMinigame
                 state.Current = GameLoopState.Haggle;
             }
         }
+        else if (browsing.TryGetHaggle(out haggling))
+        {
+            // string buyerName = "Krobus";
+            // if (browsing.MakeCustomerActor(buyerName) is not CustomerActor buyer)
+            // {
+            //     state.Current = GameLoopState.Exit;
+            //     return;
+            // }
+        }
         else
         {
-            string buyerName = "Krobus";
-            if (browsingHelper.MakeCustomerActor(buyerName) is not CustomerActor buyer)
-            {
-                state.Current = GameLoopState.Exit;
-                return;
-            }
-            haggling = ShopkeepHaggle.Make(player, buyer, ItemRegistry.Create("(O)Book_Void"));
+            state.Current = GameLoopState.Exit;
         }
     }
     #endregion
