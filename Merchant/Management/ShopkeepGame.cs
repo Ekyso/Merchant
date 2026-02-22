@@ -104,6 +104,7 @@ public sealed class ShopkeepGame : IMinigame
         if (state.Current == GameLoopState.Unloaded)
             return;
         ModEntry.LogDebug("ShopkeepGame.unload");
+        browsing.Cleanup();
         haggling = null;
         helper.Events.Display.Rendering -= OnRendering;
         helper.Events.Display.Rendered -= OnRendered;
@@ -192,18 +193,13 @@ public sealed class ShopkeepGame : IMinigame
                 state.Current = GameLoopState.Haggle;
             }
         }
-        else if (browsing.TryGetHaggle(out haggling))
-        {
-            // string buyerName = "Krobus";
-            // if (browsing.MakeCustomerActor(buyerName) is not CustomerActor buyer)
-            // {
-            //     state.Current = GameLoopState.Exit;
-            //     return;
-            // }
-        }
         else
         {
-            state.Current = GameLoopState.Exit;
+            if (browsing.Update(time))
+            {
+                state.Current = GameLoopState.Exit;
+            }
+            // get haggling here
         }
     }
     #endregion
@@ -215,16 +211,14 @@ public sealed class ShopkeepGame : IMinigame
     {
         if (haggling == null)
         {
-            state.Current = GameLoopState.Browse;
+            state.Current = GameLoopState.Exit;
             return;
         }
 
-        haggling.Update(time);
-        if (!haggling.BeginHaggleRound())
+        if (haggling.Update(time))
         {
-            ModEntry.LogDebug($"Haggle Done {haggling.Count} {haggling.state} {haggling.PickedMult}");
             haggling = null;
-            state.Current = GameLoopState.Exit;
+            state.Current = GameLoopState.Browse;
             return;
         }
     }

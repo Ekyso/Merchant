@@ -2,44 +2,50 @@ using Merchant.Misc;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
+using StardewValley.Extensions;
+using StardewValley.Pathfinding;
 
 namespace Merchant.Management;
 
 public sealed class CustomerActor : NPC
 {
-    internal static CustomerActor? Make(GameLocation location, string npcName)
+    #region make
+    public static CustomerActor? Make(GameLocation location, Farmer farmer, Point entryPoint, string npcName)
     {
         if (Game1.getCharacterFromName(npcName) is not NPC sourceNPC)
         {
             return null;
         }
-        CustomerActor customerActor = new(
-            new AnimatedSprite(sourceNPC.Sprite.textureName.Value),
-            new Vector2(0, 0),
-            location.NameOrUniqueName,
-            sourceNPC.FacingDirection,
-            sourceNPC.Name,
-            sourceNPC.Portrait,
-            eventActor: true
-        );
+        CustomerActor customerActor = new(sourceNPC, location, farmer, entryPoint);
         customerActor.NetFields.CopyFrom(sourceNPC.NetFields);
         return customerActor;
     }
 
-    public CustomerActor(
-        AnimatedSprite sprite,
-        Vector2 position,
-        string defaultMap,
-        int facingDir,
-        string name,
-        Texture2D portrait,
-        bool eventActor
-    )
-        : base(sprite, position, defaultMap, facingDir, name, portrait, eventActor)
-    {
-        forceOneTileWide.Value = true;
-    }
+    private readonly Friendship? friendship;
+    private readonly Point entryPoint;
 
+    public CustomerActor(NPC sourceNPC, GameLocation location, Farmer farmer, Point entryPoint)
+        : base(
+            new AnimatedSprite(sourceNPC.Sprite.textureName.Value),
+            Vector2.Zero,
+            location.NameOrUniqueName,
+            sourceNPC.FacingDirection,
+            sourceNPC.Name,
+            sourceNPC.Portrait,
+            true
+        )
+    {
+        this.entryPoint = entryPoint;
+        forceOneTileWide.Value = true;
+        followSchedule = false;
+        if (!farmer.friendshipData.TryGetValue(sourceNPC.Name, out friendship))
+        {
+            friendship = null;
+        }
+    }
+    #endregion
+
+    #region social
     public Dialogue GetMerchantDialogue(string key, params object[] substitutions)
     {
         string merchantKey = $"{ModEntry.ModId}_{key}";
@@ -51,4 +57,85 @@ public sealed class CustomerActor : NPC
             AssetManager.LoadString(key, substitutions)
         );
     }
+
+    public float GetFriendshipHaggleBonus()
+    {
+        if (friendship == null || friendship.Points <= 1)
+            return 0;
+
+        return MathF.Log10(friendship.Points / 2500f) * 0.2f;
+    }
+
+    public int GetFriendshipHaggleMaxCount()
+    {
+        if (friendship == null || friendship.Points <= Utility.GetMaximumHeartsForCharacter(this))
+            return 3;
+        return 5;
+    }
+    #endregion
+
+    #region browsing
+    internal enum ActorState
+    {
+        Await,
+        Move,
+        Check,
+        Buy,
+        Finished,
+    }
+
+    private readonly StateManager<ActorState> state = new(ActorState.Await);
+
+    private int browsedCount = 0;
+    private const int maxBrowsedCount = 5;
+    private ForSaleTarget? forSaleTarget = null;
+
+    public bool IsFinished => state.Current == ActorState.Finished;
+
+    public bool TrySetForSaleTarget(List<ForSaleTarget> forSaleTargets)
+    {
+        if (state.Current != ActorState.Await && state.Current != ActorState.Finished)
+            return false;
+        state.Current = ActorState.Move;
+        forSaleTarget = Random.Shared.ChooseFrom(forSaleTargets);
+        (Point endPoint, int facing) = Random.Shared.ChooseFrom(forSaleTarget.BrowseAround);
+        controller = new PathFindController(this, currentLocation, endPoint, facing, ReachedForSaleItem);
+        return true;
+    }
+
+    private void FinishedBuying(Character c, GameLocation location)
+    {
+        location.characters.Remove(this);
+    }
+
+    private void ReachedForSaleItem(Character c, GameLocation location)
+    {
+        ModEntry.LogDebug($"ReachedForSaleItem {Name}");
+        state.Current = ActorState.Check;
+        browsedCount++;
+        if (Random.Shared.NextSingle() < 0.3f + browsedCount * 0.1f)
+        {
+            doEmote(16);
+            // TODO: enter haggle or auto buy here
+            state.SetNext(ActorState.Finished, 1000);
+        }
+        else
+        {
+            forSaleTarget = null;
+            state.SetNext(browsedCount >= maxBrowsedCount ? ActorState.Finished : ActorState.Await, 1000);
+        }
+    }
+
+    public override void update(GameTime time, GameLocation location)
+    {
+        base.update(time, location);
+        state.Update(time);
+        if (state.Current == ActorState.Finished)
+        {
+            state.Current = ActorState.Move;
+            controller = new PathFindController(this, currentLocation, entryPoint, -1, FinishedBuying);
+            return;
+        }
+    }
+    #endregion
 }

@@ -45,3 +45,6 @@ Dev plan
 Sounds
 hagglefail: fishEscape
 haggleSuccess: newRecord
+
+TODO:
+- indicators for mults in haggle game

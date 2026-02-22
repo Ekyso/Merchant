@@ -1,4 +1,3 @@
-using Merchant.Misc;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
@@ -16,6 +15,22 @@ public sealed record ShopkeepHaggle(
     int MaxCount
 )
 {
+    #region make
+    public static ShopkeepHaggle Make(Farmer player, CustomerActor buyer, Item forSale, float decorBonus)
+    {
+        float friendshipBonus = buyer.GetFriendshipHaggleBonus();
+
+        float minMult = 0.75f + friendshipBonus;
+        float maxMult = 1.75f + decorBonus;
+
+        ShopkeepHaggle newHaggle = new(player, buyer, forSale, minMult, maxMult, buyer.GetFriendshipHaggleMaxCount());
+        newHaggle.SetNextDialogue("Haggle_Ask", true);
+        newHaggle.CalculateBounds();
+        return newHaggle;
+    }
+    #endregion
+
+    #region haggle loop
     public enum HaggleState
     {
         Begin,
@@ -51,71 +66,8 @@ public sealed record ShopkeepHaggle(
     } = MinMult;
     public int PickedPrice { get; private set; } = -1;
 
-    #region drawing
-    private const int haggleBarTotalWidth = 1200;
-    private const int haggleBarIconWidth = 104;
-    private const int haggleBarCapWidth = 24;
-    private const int haggleBarSlideWidth = haggleBarTotalWidth - haggleBarIconWidth - haggleBarCapWidth;
-    private const int haggleBarHeight = 96;
-    private Vector2 haggleBarIconBoxPos = Vector2.Zero;
-    private Vector2 haggleBarIconPos = Vector2.Zero;
-    private Rectangle haggleBarSlideBounds = Rectangle.Empty;
-    private Vector2 haggleBarCapPos = Vector2.Zero;
-    private Vector2 targetPointerPos = Vector2.Zero;
-
-    private Rectangle buyerMugShotRect = Rectangle.Empty;
-
-    private static readonly Rectangle sourceRectHaggleBarIconBox = new(293, 360, 26, 24);
-    private static readonly Rectangle sourceRectHaggleBarSlide = new(319, 360, 1, 24);
-    private static readonly Rectangle sourceRectHaggleBarCap = new(323, 360, 6, 24);
-    private static readonly Rectangle sourceRectHagglePointerA = new(310, 392, 16, 16);
-    private static readonly Rectangle sourceRectHagglePointerB = new(294, 392, 16, 16);
-
     private int pointerPitch = -1;
     private ICue? pointerSound;
-    #endregion
-
-    public static ShopkeepHaggle Make(Farmer player, CustomerActor buyer, Item forSale)
-    {
-        ShopkeepHaggle newHaggle = new(player, buyer, forSale, 0.5f, 1.5f, 3);
-        newHaggle.Initialize();
-        return newHaggle;
-    }
-
-    private void Initialize()
-    {
-        SetNextDialogue("Haggle_Ask", true);
-        buyerMugShotRect = Buyer.getMugShotSourceRect();
-        CalculateBounds();
-    }
-
-    internal void CalculateBounds()
-    {
-        Vector2 position = Utility.getTopLeftPositionForCenteringOnScreen(haggleBarTotalWidth, haggleBarHeight, 0, 0);
-        haggleBarIconBoxPos = new(position.X, MathF.Min(position.Y, Game1.viewport.Height - 600));
-        haggleBarIconPos = new(haggleBarIconBoxPos.X + 16, haggleBarIconBoxPos.Y + 16);
-        haggleBarSlideBounds = new(
-            (int)haggleBarIconBoxPos.X + haggleBarIconWidth,
-            (int)haggleBarIconBoxPos.Y,
-            haggleBarSlideWidth,
-            haggleBarHeight
-        );
-        haggleBarCapPos = new(haggleBarIconBoxPos.X + haggleBarIconWidth + haggleBarSlideWidth, haggleBarIconBoxPos.Y);
-        CalculateTargetPointerBounds();
-    }
-
-    private void CalculateTargetPointerBounds(bool useNextTargetPnt = false)
-    {
-        targetPointerPos = new(
-            Utility.Lerp(
-                haggleBarSlideBounds.X,
-                haggleBarSlideBounds.X + haggleBarSlideWidth,
-                useNextTargetPnt ? Utility.Lerp(nextTargetPointer, TargetPointer, state.TimerProgress) : TargetPointer
-            )
-                - buyerMugShotRect.Width * 4,
-            haggleBarSlideBounds.Y - 16
-        );
-    }
 
     private void SetNextDialogue(string key, bool transitioning = false)
     {
@@ -127,15 +79,11 @@ public sealed record ShopkeepHaggle(
         };
     }
 
-    public bool BeginHaggleRound()
+    private bool BeginHaggleRound()
     {
         if (IsDone)
         {
             Game1.exitActiveMenu();
-            return false;
-        }
-        if (state.Current != HaggleState.Begin)
-        {
             return true;
         }
 
@@ -153,23 +101,25 @@ public sealed record ShopkeepHaggle(
         state.Current = HaggleState.Increase;
         state.SetNext(HaggleState.Decrease, pointerPeriodMS, State_DecreaseStart);
         Count++;
-        return true;
+        return false;
     }
 
-    public void Update(GameTime time)
+    public bool Update(GameTime time)
     {
         state.Update(time);
         switch (state.Current)
         {
+            case HaggleState.Begin:
+                return BeginHaggleRound();
+            case HaggleState.Picked:
+                if (nextTargetPointer > -1)
+                    CalculateTargetPointerBounds(true);
+                return false;
             case HaggleState.Increase:
                 pointer = MathF.Pow((float)(1.0 - state.TimerProgress), 2);
                 break;
             case HaggleState.Decrease:
                 pointer = MathF.Pow(state.TimerProgress, 2);
-                break;
-            case HaggleState.Picked:
-                if (nextTargetPointer > -1)
-                    CalculateTargetPointerBounds(true);
                 break;
         }
 
@@ -180,6 +130,8 @@ public sealed record ShopkeepHaggle(
             Game1.playSound("flute", pitch, out pointerSound);
             pointerPitch = pitch;
         }
+
+        return false;
     }
 
     public void Pick()
@@ -211,8 +163,56 @@ public sealed record ShopkeepHaggle(
     {
         state.SetNext(Count >= MaxCount ? HaggleState.DoneFailed : HaggleState.Begin, pointerPeriodMS);
     }
+    #endregion
+
+    #region haggle draw
+    private const int haggleBarTotalWidth = 1200;
+    private const int haggleBarIconWidth = 104;
+    private const int haggleBarCapWidth = 24;
+    private const int haggleBarSlideWidth = haggleBarTotalWidth - haggleBarIconWidth - haggleBarCapWidth;
+    private const int haggleBarHeight = 96;
+    private Vector2 haggleBarIconBoxPos = Vector2.Zero;
+    private Vector2 haggleBarIconPos = Vector2.Zero;
+    private Rectangle haggleBarSlideBounds = Rectangle.Empty;
+    private Vector2 haggleBarCapPos = Vector2.Zero;
+    private Vector2 targetPointerPos = Vector2.Zero;
+    private Rectangle buyerMugShotRect = Buyer.getMugShotSourceRect();
+
+    private static readonly Rectangle sourceRectHaggleBarIconBox = new(293, 360, 26, 24);
+    private static readonly Rectangle sourceRectHaggleBarSlide = new(319, 360, 1, 24);
+    private static readonly Rectangle sourceRectHaggleBarCap = new(323, 360, 6, 24);
+    private static readonly Rectangle sourceRectHagglePointerA = new(310, 392, 16, 16);
+    private static readonly Rectangle sourceRectHagglePointerB = new(294, 392, 16, 16);
 
     private static readonly Vector2 HaggleDrawPos = new(12, 12 + 64);
+
+    internal void CalculateBounds()
+    {
+        Vector2 position = Utility.getTopLeftPositionForCenteringOnScreen(haggleBarTotalWidth, haggleBarHeight, 0, 0);
+        haggleBarIconBoxPos = new(position.X, MathF.Min(position.Y, Game1.viewport.Height - 600));
+        haggleBarIconPos = new(haggleBarIconBoxPos.X + 16, haggleBarIconBoxPos.Y + 16);
+        haggleBarSlideBounds = new(
+            (int)haggleBarIconBoxPos.X + haggleBarIconWidth,
+            (int)haggleBarIconBoxPos.Y,
+            haggleBarSlideWidth,
+            haggleBarHeight
+        );
+        haggleBarCapPos = new(haggleBarIconBoxPos.X + haggleBarIconWidth + haggleBarSlideWidth, haggleBarIconBoxPos.Y);
+        CalculateTargetPointerBounds();
+    }
+
+    private void CalculateTargetPointerBounds(bool useNextTargetPnt = false)
+    {
+        targetPointerPos = new(
+            Utility.Lerp(
+                haggleBarSlideBounds.X,
+                haggleBarSlideBounds.X + haggleBarSlideWidth,
+                useNextTargetPnt ? Utility.Lerp(nextTargetPointer, TargetPointer, state.TimerProgress) : TargetPointer
+            )
+                - buyerMugShotRect.Width * 4,
+            haggleBarSlideBounds.Y - 16
+        );
+    }
 
     public void Draw(SpriteBatch b)
     {
@@ -289,4 +289,5 @@ public sealed record ShopkeepHaggle(
             1f
         );
     }
+    #endregion
 }
