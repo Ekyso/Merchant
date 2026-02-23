@@ -1,6 +1,5 @@
 using Merchant.Misc;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 using StardewValley.Extensions;
 using StardewValley.Pathfinding;
@@ -24,7 +23,7 @@ public sealed class CustomerActor : NPC
     private readonly Friendship? friendship;
     private readonly Point entryPoint;
 
-    public CustomerActor(NPC sourceNPC, GameLocation location, Farmer farmer, Point entryPoint)
+    public CustomerActor(NPC sourceNPC, GameLocation location, Farmer player, Point entryPoint)
         : base(
             new AnimatedSprite(sourceNPC.Sprite.textureName.Value),
             Vector2.Zero,
@@ -38,7 +37,7 @@ public sealed class CustomerActor : NPC
         this.entryPoint = entryPoint;
         forceOneTileWide.Value = true;
         followSchedule = false;
-        if (!farmer.friendshipData.TryGetValue(sourceNPC.Name, out friendship))
+        if (!player.friendshipData.TryGetValue(sourceNPC.Name, out friendship))
         {
             friendship = null;
         }
@@ -81,6 +80,7 @@ public sealed class CustomerActor : NPC
         Move,
         Check,
         Buy,
+        Leaving,
         Finished,
     }
 
@@ -88,23 +88,46 @@ public sealed class CustomerActor : NPC
 
     private int browsedCount = 0;
     private const int maxBrowsedCount = 5;
-    private ForSaleTarget? forSaleTarget = null;
+    public ForSaleTarget? ForSale
+    {
+        get => field;
+        set
+        {
+            field?.HeldBy = null;
+            value?.HeldBy = this;
+            field = value;
+        }
+    }
 
     public bool IsFinished => state.Current == ActorState.Finished;
 
-    public bool TrySetForSaleTarget(List<ForSaleTarget> forSaleTargets)
+    public void UpdateBuyTarget(List<ForSaleTarget> forSaleTargets, out ForSaleTarget? hagglingForSaleTarget)
     {
-        if (state.Current != ActorState.Await && state.Current != ActorState.Finished)
-            return false;
-        state.Current = ActorState.Move;
-        forSaleTarget = Random.Shared.ChooseFrom(forSaleTargets);
-        (Point endPoint, int facing) = Random.Shared.ChooseFrom(forSaleTarget.BrowseAround);
-        controller = new PathFindController(this, currentLocation, endPoint, facing, ReachedForSaleItem);
-        return true;
+        hagglingForSaleTarget = null;
+        if (state.Current == ActorState.Buy)
+        {
+            if (ForSale == null)
+            {
+                state.Current = ActorState.Await;
+            }
+            else
+            {
+                hagglingForSaleTarget = ForSale;
+            }
+        }
+        if (state.Current == ActorState.Await)
+        {
+            state.Current = ActorState.Move;
+            ForSale = Random.Shared.ChooseFrom(forSaleTargets);
+            (Point endPoint, int facing) = Random.Shared.ChooseFrom(ForSale.BrowseAround);
+            controller = new PathFindController(this, currentLocation, endPoint, facing, ReachedForSaleItem);
+        }
     }
 
     private void FinishedBuying(Character c, GameLocation location)
     {
+        ForSale = null;
+        state.Current = ActorState.Finished;
         location.characters.Remove(this);
     }
 
@@ -116,25 +139,29 @@ public sealed class CustomerActor : NPC
         if (Random.Shared.NextSingle() < 0.3f + browsedCount * 0.1f)
         {
             doEmote(16);
-            // TODO: enter haggle or auto buy here
-            state.SetNext(ActorState.Finished, 1000);
+            state.SetNext(ActorState.Buy, 1000);
         }
         else
         {
-            forSaleTarget = null;
-            state.SetNext(browsedCount >= maxBrowsedCount ? ActorState.Finished : ActorState.Await, 1000);
+            ForSale = null;
+            state.SetNext(browsedCount >= maxBrowsedCount ? ActorState.Leaving : ActorState.Await, 1000);
         }
+    }
+
+    internal void DoneHaggling()
+    {
+        ForSale = null;
+        state.Current = ActorState.Leaving;
+        controller = new PathFindController(this, currentLocation, entryPoint, -1, FinishedBuying);
     }
 
     public override void update(GameTime time, GameLocation location)
     {
         base.update(time, location);
         state.Update(time);
-        if (state.Current == ActorState.Finished)
+        if (state.Current == ActorState.Leaving && TilePoint == entryPoint && !IsFinished)
         {
-            state.Current = ActorState.Move;
-            controller = new PathFindController(this, currentLocation, entryPoint, -1, FinishedBuying);
-            return;
+            FinishedBuying(this, location);
         }
     }
     #endregion

@@ -31,7 +31,7 @@ public sealed class ShopkeepGame : IMinigame
     #endregion
 
     #region settings
-    public bool doMainGameUpdates() => true;
+    public bool doMainGameUpdates() => haggling == null;
 
     public string minigameId() => $"{ModEntry.ModId}:{nameof(ShopkeepGame)}";
 
@@ -169,6 +169,7 @@ public sealed class ShopkeepGame : IMinigame
                 return false;
             default:
             case GameLoopState.Exit:
+                browsing.DebugSummary();
                 return true;
         }
     }
@@ -186,20 +187,13 @@ public sealed class ShopkeepGame : IMinigame
 
     private void DoBrowse(GameTime time)
     {
-        if (haggling != null)
+        if (haggling != null && haggling.IsReadyToStart)
         {
-            if (haggling.IsReadyToStart)
-            {
-                state.Current = GameLoopState.Haggle;
-            }
+            state.Current = GameLoopState.Haggle;
         }
-        else
+        else if (browsing.Update(time, ref haggling))
         {
-            if (browsing.Update(time))
-            {
-                state.Current = GameLoopState.Exit;
-            }
-            // get haggling here
+            state.Current = GameLoopState.Exit;
         }
     }
     #endregion

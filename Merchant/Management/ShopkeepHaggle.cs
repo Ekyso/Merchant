@@ -1,3 +1,4 @@
+using Merchant.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
@@ -9,21 +10,28 @@ namespace Merchant.Management;
 public sealed record ShopkeepHaggle(
     Farmer Player,
     CustomerActor Buyer,
-    Item ForSale,
+    ForSaleTarget ForSale,
     float MinMult,
     float MaxMult,
     int MaxCount
 )
 {
     #region make
-    public static ShopkeepHaggle Make(Farmer player, CustomerActor buyer, Item forSale, float decorBonus)
+    public static ShopkeepHaggle Make(Farmer player, CustomerActor buyer, ForSaleTarget forSaleTarget, float decorBonus)
     {
         float friendshipBonus = buyer.GetFriendshipHaggleBonus();
 
         float minMult = 0.75f + friendshipBonus;
         float maxMult = 1.75f + decorBonus;
 
-        ShopkeepHaggle newHaggle = new(player, buyer, forSale, minMult, maxMult, buyer.GetFriendshipHaggleMaxCount());
+        ShopkeepHaggle newHaggle = new(
+            player,
+            buyer,
+            forSaleTarget,
+            minMult,
+            maxMult,
+            buyer.GetFriendshipHaggleMaxCount()
+        );
         newHaggle.SetNextDialogue("Haggle_Ask", true);
         newHaggle.CalculateBounds();
         return newHaggle;
@@ -37,8 +45,7 @@ public sealed record ShopkeepHaggle(
         Increase,
         Decrease,
         Picked,
-        DoneSuccess,
-        DoneFailed,
+        Done,
     }
 
     private const double pointerPeriodMS = 1500.0;
@@ -48,7 +55,6 @@ public sealed record ShopkeepHaggle(
     public readonly StateManager<HaggleState> state = new(HaggleState.Begin);
     public bool IsReadyToStart =>
         state.Current == HaggleState.Begin && Game1.activeClickableMenu is DialogueBox { transitioning: false };
-    public bool IsDone => state.Current == HaggleState.DoneSuccess || state.Current == HaggleState.DoneFailed;
     private float pointer = 0;
 
     public int Count { get; private set; } = 0;
@@ -61,7 +67,8 @@ public sealed record ShopkeepHaggle(
         {
             field = value;
             if (value >= 0)
-                PickedPrice = (int)MathF.Ceiling(ForSale.sellToStorePrice(Player.UniqueMultiplayerID) * PickedMult);
+                PickedPrice = (int)
+                    MathF.Ceiling(ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID) * PickedMult);
         }
     } = MinMult;
     public int PickedPrice { get; private set; } = -1;
@@ -71,7 +78,9 @@ public sealed record ShopkeepHaggle(
 
     private void SetNextDialogue(string key, bool transitioning = false)
     {
-        Game1.activeClickableMenu = new DialogueBox(Buyer.GetMerchantDialogue(key, ForSale.DisplayName, PickedPrice))
+        Game1.activeClickableMenu = new DialogueBox(
+            Buyer.GetMerchantDialogue(key, ForSale.Thing.DisplayName, PickedPrice)
+        )
         {
             showTyping = false,
             transitioning = transitioning,
@@ -81,12 +90,6 @@ public sealed record ShopkeepHaggle(
 
     private bool BeginHaggleRound()
     {
-        if (IsDone)
-        {
-            Game1.exitActiveMenu();
-            return true;
-        }
-
         if (nextTargetPointer > -1)
         {
             TargetPointer = nextTargetPointer;
@@ -109,6 +112,10 @@ public sealed record ShopkeepHaggle(
         state.Update(time);
         switch (state.Current)
         {
+            case HaggleState.Done:
+                Buyer.DoneHaggling();
+                Game1.exitActiveMenu();
+                return true;
             case HaggleState.Begin:
                 return BeginHaggleRound();
             case HaggleState.Picked:
@@ -134,19 +141,22 @@ public sealed record ShopkeepHaggle(
         return false;
     }
 
+    public bool HaggleExpired() => Count >= MaxCount;
+
     public void Pick()
     {
         state.Current = HaggleState.Picked;
         PickedMult = Utility.Lerp(MinMult, MaxMult, pointer);
         if (pointer <= TargetPointer)
         {
-            state.SetNext(HaggleState.DoneSuccess, pickedPauseMS);
+            state.SetNext(HaggleState.Done, pickedPauseMS);
+            ForSale.Sold = new(true, Buyer.Name, ForSale.Thing.QualifiedItemId, PickedPrice);
             Game1.playSound("reward");
             SetNextDialogue("Haggle_Success");
         }
-        else if (Count >= MaxCount)
+        else if (HaggleExpired())
         {
-            state.SetNext(HaggleState.DoneFailed, pickedPauseMS);
+            state.SetNext(HaggleState.Done, pickedPauseMS);
             Game1.playSound("fishEscape");
             SetNextDialogue("Haggle_Fail");
         }
@@ -161,7 +171,16 @@ public sealed record ShopkeepHaggle(
 
     private void State_DecreaseStart(HaggleState oldState, HaggleState newState)
     {
-        state.SetNext(Count >= MaxCount ? HaggleState.DoneFailed : HaggleState.Begin, pointerPeriodMS);
+        if (HaggleExpired())
+        {
+            state.SetNext(HaggleState.Done, pickedPauseMS);
+            Game1.playSound("fishEscape");
+            SetNextDialogue("Haggle_Fail");
+        }
+        else
+        {
+            state.SetNext(HaggleState.Begin, pickedPauseMS);
+        }
     }
     #endregion
 
@@ -237,7 +256,7 @@ public sealed record ShopkeepHaggle(
             SpriteEffects.None,
             1f
         );
-        ForSale.drawInMenu(b, haggleBarIconPos, 1f + pointer / 2f);
+        ForSale.Thing.drawInMenu(b, haggleBarIconPos, 1f + pointer / 2f);
 
         b.Draw(
             Game1.mouseCursors,
@@ -274,9 +293,7 @@ public sealed record ShopkeepHaggle(
         );
         float pointerPos = haggleBarSlideBounds.X + pointer * haggleBarSlideWidth;
         float rotate =
-            state.Current == HaggleState.Picked && state.Next == HaggleState.DoneSuccess
-                ? 4 * MathF.PI * state.TimerProgress
-                : 0f;
+            state.Current == HaggleState.Picked && ForSale.Sold != null ? 4 * MathF.PI * state.TimerProgress : 0f;
         b.Draw(
             Game1.mouseCursors,
             new(pointerPos, haggleBarSlideBounds.Y + 16 + sourceRectHagglePointerA.Height * 2),

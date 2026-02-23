@@ -1,4 +1,5 @@
 using Merchant.Misc;
+using Merchant.Models;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
@@ -6,7 +7,48 @@ using StardewValley.Objects;
 
 namespace Merchant.Management;
 
-public record ForSaleTarget(Item ForSale, Furniture Table, List<(Point, int)> BrowseAround);
+public record ForSaleTarget(Item Thing, Furniture Table, List<(Point, int)> BrowseAround, bool FromHeldChest)
+{
+    public bool IsAvailable => HeldBy == null && Sold == null;
+    public CustomerActor? HeldBy { get; set; } = null;
+    public SoldRecord? Sold
+    {
+        get => field;
+        set
+        {
+            if (field != null)
+                return;
+            field = value;
+            HeldBy = null;
+            if (FromHeldChest)
+            {
+                if (Table.heldObject.Value is Chest chest)
+                {
+                    for (int i = 0; i < chest.Items.Count; i++)
+                    {
+                        Item item = chest.Items[i];
+                        if (item != null)
+                        {
+                            item.onDetachedFromParent();
+                            if (item is SObject obj)
+                                obj.performRemoveAction();
+                            chest.Items[i] = null;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (Table.heldObject.Value is SObject obj)
+                {
+                    obj.onDetachedFromParent();
+                    obj.performRemoveAction();
+                    Table.heldObject.Value = null;
+                }
+            }
+        }
+    }
+}
 
 public sealed record ShopkeepBrowsing(
     GameLocation Location,
@@ -68,7 +110,7 @@ public sealed record ShopkeepBrowsing(
                     {
                         if (item != null && item.sellToStorePrice(player.UniqueMultiplayerID) > 0)
                         {
-                            forSaleTables.Add(new(item, furniture, browseAround));
+                            forSaleTables.Add(new(item, furniture, browseAround, true));
                         }
                     }
                 }
@@ -77,7 +119,7 @@ public sealed record ShopkeepBrowsing(
                     ModEntry.LogDebug(
                         $"ForSale: {furniture.heldObject.Value.DisplayName} ({string.Join(',', browseAround)})"
                     );
-                    forSaleTables.Add(new(furniture.heldObject.Value, furniture, browseAround));
+                    forSaleTables.Add(new(furniture.heldObject.Value, furniture, browseAround, false));
                 }
             }
             else if (furniture.furniture_type.Value == 12)
@@ -126,7 +168,7 @@ public sealed record ShopkeepBrowsing(
             int x = boundingBox.Left + i;
             // X
             // .
-            pnt = new(x, boundingBox.Bottom + 1);
+            pnt = new(x, boundingBox.Bottom);
             if (reachable.Contains(pnt))
                 yield return new(pnt, 0);
             // .
@@ -143,7 +185,7 @@ public sealed record ShopkeepBrowsing(
             if (reachable.Contains(pnt))
                 yield return new(pnt, 1);
             // X.
-            pnt = new(boundingBox.Right + 1, y);
+            pnt = new(boundingBox.Right, y);
             if (reachable.Contains(pnt))
                 yield return new(pnt, 3);
         }
@@ -179,11 +221,17 @@ public sealed record ShopkeepBrowsing(
         return new(customerActors);
     }
 
-    public bool Update(GameTime time)
+    public bool Update(GameTime time, ref ShopkeepHaggle? haggling)
     {
         state.Update(time);
         if (state.Current == BrowsingState.Finished)
         {
+            return true;
+        }
+
+        if (waitingActors.Count == 0 && dispatchedActors.All(actor => actor.IsFinished))
+        {
+            state.Current = BrowsingState.Finished;
             return true;
         }
 
@@ -194,19 +242,24 @@ public sealed record ShopkeepBrowsing(
             {
                 state.SetNext(BrowsingState.NewCustomer, Random.Shared.Next(newCustomerCDMin, newCustomerCDMax));
             }
-            else if (dispatchedActors.All(actor => actor.IsFinished))
-            {
-                return true;
-            }
             else if (state.Next != BrowsingState.Finished)
             {
-                state.SetNext(BrowsingState.Finished, 10000);
+                state.SetNext(BrowsingState.Finished, 30000);
+                return false;
             }
         }
 
-        foreach (CustomerActor actor in dispatchedActors)
+        List<ForSaleTarget> forSaleTargetsFiltered = ForSaleTargets.Where(forSale => forSale.IsAvailable).ToList();
+        if (forSaleTargetsFiltered.Count > 0)
         {
-            actor.TrySetForSaleTarget(ForSaleTargets);
+            foreach (CustomerActor actor in dispatchedActors)
+            {
+                actor.UpdateBuyTarget(forSaleTargetsFiltered, out ForSaleTarget? hagglingForSaleTarget);
+                if (haggling == null && hagglingForSaleTarget != null)
+                {
+                    haggling = ShopkeepHaggle.Make(Player, actor, hagglingForSaleTarget, ShopDecorBonus);
+                }
+            }
         }
 
         return false;
@@ -214,11 +267,10 @@ public sealed record ShopkeepBrowsing(
 
     public void Cleanup()
     {
-        if (state.Current != BrowsingState.Finished)
-        {
-            Location.characters.RemoveWhere(actor => actor is CustomerActor);
-            state.Current = BrowsingState.Finished;
-        }
+        waitingActors.Clear();
+        dispatchedActors.Clear();
+        Location.characters.RemoveWhere(actor => actor is CustomerActor);
+        state.Current = BrowsingState.Finished;
     }
 
     private bool AddNewCustomer()
@@ -235,10 +287,20 @@ public sealed record ShopkeepBrowsing(
         return true;
     }
 
-    internal bool TryGetHaggle(out ShopkeepHaggle haggling)
+    internal void DebugSummary()
     {
-        haggling = ShopkeepHaggle.Make(Player, CustomerActors[0], ItemRegistry.Create("(O)Book_Void"), ShopDecorBonus);
-        return true;
+        ModEntry.Log("===== SOLD =====", LogLevel.Info);
+        foreach (ForSaleTarget forSale in ForSaleTargets)
+        {
+            if (forSale.Sold != null)
+                ModEntry.Log($"- {forSale.Thing.DisplayName} ({forSale.Sold})", LogLevel.Info);
+        }
+        ModEntry.Log("===== REMAINING =====", LogLevel.Info);
+        foreach (ForSaleTarget forSale in ForSaleTargets)
+        {
+            if (forSale.Sold == null)
+                ModEntry.Log($"- {forSale.Thing.DisplayName} ({forSale.Thing.QualifiedItemId})", LogLevel.Info);
+        }
     }
     #endregion
 }
