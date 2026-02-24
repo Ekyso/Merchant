@@ -1,8 +1,13 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Merchant.Misc;
 using Merchant.Models;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
+using StardewValley.BellsAndWhistles;
+using StardewValley.GameData;
+using StardewValley.Locations;
 using StardewValley.Objects;
 
 namespace Merchant.Management;
@@ -49,6 +54,48 @@ public record ForSaleTarget(Item Thing, Furniture Table, List<(Point, int)> Brow
     }
 }
 
+public sealed record ShopBonusStats(int StandingDecorCount, int TableCount, int FloorDecorCount, int MapTileCount)
+{
+    public readonly float StandingDecorBonusRaw = (float)StandingDecorCount / TableCount;
+    public readonly float FloorCoverageBonusRaw = FloorDecorCount / (float)MapTileCount;
+    public readonly float TotalBonus =
+        MathF.Min(1f, 0.5f * (StandingDecorCount / (float)TableCount))
+        + MathF.Min(0.5f, FloorDecorCount / (float)MapTileCount);
+
+    public string FormatSummary()
+    {
+        StringBuilder sb = new();
+        sb.Append(I18n.Bonus_Title());
+        sb.Append("  ^");
+        sb.Append("----------------------------------------");
+        sb.Append("  ^");
+        sb.Append(I18n.Bonus_Decor());
+        sb.Append("  ^  ");
+        sb.Append(
+            I18n.Bonus_Decor_Values(
+                StandingDecorCount,
+                TableCount,
+                $"{StandingDecorBonusRaw:P2}",
+                StandingDecorBonusRaw >= 2f ? I18n.Bonus_Capped() : ""
+            )
+        );
+        sb.Append("  ^");
+        sb.Append(I18n.Bonus_RugFloor());
+        sb.Append("  ^  ");
+        sb.Append(
+            I18n.Bonus_RugFloor_Values(
+                FloorDecorCount,
+                MapTileCount,
+                $"{FloorCoverageBonusRaw:P2}",
+                StandingDecorBonusRaw >= 0.5f ? I18n.Bonus_Capped() : ""
+            )
+        );
+        sb.Append("  ^");
+        sb.Append(I18n.Bonus_Total($"{TotalBonus:P2}"));
+        return sb.ToString();
+    }
+}
+
 public sealed record ShopkeepBrowsing(
     GameLocation Location,
     Farmer Player,
@@ -56,25 +103,54 @@ public sealed record ShopkeepBrowsing(
     List<Point> ReachableTiles,
     List<CustomerActor> CustomerActors,
     List<ForSaleTarget> ForSaleTargets,
-    float ShopDecorBonus
+    ShopBonusStats ShopBonus
 )
 {
     #region make
-    public static ShopkeepBrowsing? Make(GameLocation location, Farmer player)
+    public static bool TryMake(
+        GameLocation location,
+        Farmer player,
+        [NotNullWhen(true)] out ShopkeepBrowsing? browsing,
+        [NotNullWhen(false)] out string? failReason
+    )
     {
+        browsing = null;
+        failReason = null;
+        // location
+        if (location is FarmHouse)
+        {
+            failReason = I18n.FailReason_IsFarmHouse();
+            return false;
+        }
+        if (location.ParentBuilding == null)
+        {
+            failReason = I18n.FailReason_NotFarmBuilding();
+            return false;
+        }
+        if (location.Map == null)
+        {
+            failReason = I18n.FailReason_InvalidMap();
+            return false;
+        }
+        int mapTileCount = location.Map.DisplayWidth / 64 * (location.Map.DisplayHeight / 64);
+        if (mapTileCount == 0)
+        {
+            failReason = I18n.FailReason_InvalidMap();
+            return false;
+        }
         // tile accessibility
         if (location.warps.Count < 1)
         {
-            ModEntry.Log($"Location {location.NameOrUniqueName} has no warps in", LogLevel.Error);
-            return null;
+            failReason = I18n.FailReason_NoWarpsIn();
+            return false;
         }
         Warp firstWarp = location.warps[0];
         Point entryPoint = new(firstWarp.X, firstWarp.Y - 1);
         List<Point> reachableTiles = Topology.TileStandableBFS(location, entryPoint);
         if (!reachableTiles.Any())
         {
-            ModEntry.Log($"Location {location.NameOrUniqueName} has no reachable tiles", LogLevel.Error);
-            return null;
+            failReason = I18n.FailReason_NoReachable();
+            return false;
         }
 
         // shop layout and for sale items
@@ -110,9 +186,15 @@ public sealed record ShopkeepBrowsing(
             }
             else
             {
-                standingDecorCount++;
+                standingDecorCount += furniture.getTilesHigh() * furniture.getTilesWide();
             }
         }
+        if (forSaleTables.Count == 0)
+        {
+            failReason = I18n.FailReason_NoReachable();
+            return false;
+        }
+
         standingDecorCount += Math.Max(location.objects.Count() - 1, 0);
         floorDecorCount += location.terrainFeatures.Count();
 
@@ -123,23 +205,10 @@ public sealed record ShopkeepBrowsing(
             customerActors.Add(new CustomerActor(sourceFriend, entryPoint));
         }
 
-        float shopDecorBonus = 0;
-        int tableCount = forSaleTables.Count;
-        if (tableCount > 0)
-        {
-            float decorBonus = 0.5f * standingDecorCount / tableCount;
-            ModEntry.LogDebug($"DecorBonus: {standingDecorCount} / {tableCount} = {decorBonus}");
-            shopDecorBonus += MathF.Min(decorBonus, 0.6f);
-        }
-        if (location.Map != null)
-        {
-            int mapTileCount = location.Map.DisplayWidth / 64 * (location.Map.DisplayHeight / 64);
-            float rugBonus = 0.5f * floorDecorCount / mapTileCount;
-            ModEntry.LogDebug($"RugBonus: {floorDecorCount} / {mapTileCount} {rugBonus}");
-            shopDecorBonus += Math.Min(rugBonus, 0.4f);
-        }
+        ShopBonusStats bonusStats = new(standingDecorCount, forSaleTables.Count, floorDecorCount, mapTileCount);
 
-        return new(location, player, entryPoint, reachableTiles, customerActors, forSaleTables, shopDecorBonus);
+        browsing = new(location, player, entryPoint, reachableTiles, customerActors, forSaleTables, bonusStats);
+        return true;
     }
 
     private static IEnumerable<(Point, int)> FormBrowseAround(Furniture furniture, List<Point> reachable)
@@ -193,6 +262,8 @@ public sealed record ShopkeepBrowsing(
     private const int newCustomerCDMin = 2000;
     private const int newCustomerCDMax = 4000;
 
+    internal bool AboutToFinish => state.Next == BrowsingState.Finished;
+
     private readonly Queue<CustomerActor> waitingActors = ShuffleWaitingActors(CustomerActors);
     private readonly List<CustomerActor> dispatchedActors = [];
 
@@ -211,22 +282,11 @@ public sealed record ShopkeepBrowsing(
             return true;
         }
 
-        bool aboutToFinish = state.Next == BrowsingState.Finished;
-
-        if (!aboutToFinish && waitingActors.Count == 0 && dispatchedActors.All(actor => actor.IsLeavingOrFinished))
+        if (waitingActors.Count == 0 && dispatchedActors.All(actor => actor.IsLeavingOrFinished))
         {
             ModEntry.Log("Browsing finished reason: all actors are leaving");
-            state.SetNext(BrowsingState.Finished, 10000);
-        }
-
-        if (state.Current == BrowsingState.NewCustomer)
-        {
-            state.Current = BrowsingState.Waiting;
-            AddNewCustomer();
-            if (waitingActors.Any())
-            {
-                state.SetNext(BrowsingState.NewCustomer, Random.Shared.Next(newCustomerCDMin, newCustomerCDMax));
-            }
+            state.Current = BrowsingState.Finished;
+            return true;
         }
 
         List<ForSaleTarget>? availableForSale = null;
@@ -248,10 +308,21 @@ public sealed record ShopkeepBrowsing(
             }
         }
 
-        if (!aboutToFinish && availableForSale == null && availableForSaleHeld == null)
+        if (availableForSale == null && availableForSaleHeld == null)
         {
             ModEntry.Log("Browsing finished reason: all items have been sold");
-            state.SetNext(BrowsingState.Finished, 5000);
+            state.Current = BrowsingState.Finished;
+            return true;
+        }
+
+        if (state.Current == BrowsingState.NewCustomer)
+        {
+            state.Current = BrowsingState.Waiting;
+            AddNewCustomer();
+            if (waitingActors.Any())
+            {
+                state.SetNext(BrowsingState.NewCustomer, Random.Shared.Next(newCustomerCDMin, newCustomerCDMax));
+            }
         }
 
         foreach (CustomerActor actor in dispatchedActors)
@@ -259,7 +330,7 @@ public sealed record ShopkeepBrowsing(
             actor.UpdateBuyTarget(availableForSale, availableForSaleHeld, out ForSaleTarget? hagglingForSaleTarget);
             if (haggling == null && hagglingForSaleTarget != null)
             {
-                haggling = ShopkeepHaggle.Make(Player, actor, hagglingForSaleTarget, ShopDecorBonus);
+                haggling = ShopkeepHaggle.Make(Player, actor, hagglingForSaleTarget, ShopBonus.TotalBonus);
             }
         }
 

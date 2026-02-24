@@ -1,3 +1,4 @@
+using Merchant.Models;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -12,13 +13,26 @@ internal static class AssetManager
 {
     private const string Asset_TextureCashregister = $"{ModEntry.ModId}/cashregister";
     internal const string Asset_Strings = $"{ModEntry.ModId}\\Strings";
+    internal const string Asset_CustomerData = $"{ModEntry.ModId}/Customers";
     internal const string CashRegisterId = $"{ModEntry.ModId}_CashRegister";
     internal const string CashRegisterQId = $"(BC){ModEntry.ModId}_CashRegister";
     internal const string DoorbellCue = $"{ModEntry.ModId}_doorbell";
 
+    private static Dictionary<string, CustomerData>? customerData = null;
+    public static Dictionary<string, CustomerData> CustomerData =>
+        customerData ??= Game1.content.Load<Dictionary<string, CustomerData>>(Asset_CustomerData);
+
+    public static CustomerData? GetCustomerData(string key)
+    {
+        if (CustomerData.TryGetValue(key, out CustomerData? data))
+            return data;
+        return null;
+    }
+
     public static void Register()
     {
         ModEntry.help.Events.Content.AssetRequested += OnAssetRequested;
+        ModEntry.help.Events.Content.AssetsInvalidated += OnAssetInvalidated;
     }
 
     internal static string LoadString(string key) => Game1.content.LoadString($"{Asset_Strings}:{key}");
@@ -28,6 +42,14 @@ internal static class AssetManager
 
     internal static string LoadStringReturnNullIfNotFound(string key, params object[] substitutions) =>
         Game1.content.LoadStringReturnNullIfNotFound($"{Asset_Strings}:{key}", substitutions);
+
+    private static void OnAssetInvalidated(object? sender, AssetsInvalidatedEventArgs e)
+    {
+        if (e.NamesWithoutLocale.Any(name => name.IsEquivalentTo(Asset_CustomerData)))
+        {
+            customerData = null;
+        }
+    }
 
     public static void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
     {
@@ -47,6 +69,10 @@ internal static class AssetManager
         else if (name.IsEquivalentTo("Data/AudioChanges"))
         {
             e.Edit(Edit_AudioChanges, AssetEditPriority.Default);
+        }
+        else if (name.IsEquivalentTo(Asset_CustomerData))
+        {
+            e.LoadFrom(() => new Dictionary<string, CustomerData>(), AssetLoadPriority.Exclusive);
         }
         else if (name.IsEquivalentTo(Asset_Strings))
         {
@@ -85,7 +111,7 @@ internal static class AssetManager
     public static void Edit_Machines(IAssetData asset)
     {
         IDictionary<string, MachineData> data = asset.AsDictionary<string, MachineData>().Data;
-        data[CashRegisterQId] = new() { InteractMethod = "Merchant.ModEntry, Merchant: InteractShowMerchantMenu" };
+        data[CashRegisterQId] = new() { InteractMethod = GameDelegates.InteractMethod };
     }
 
     public static void Edit_BigCraftables(IAssetData asset)
@@ -94,8 +120,8 @@ internal static class AssetManager
         data[CashRegisterId] = new()
         {
             Name = CashRegisterId,
-            DisplayName = $"[LocalizedText {Asset_Strings}:bc.cash-register.name]",
-            Description = $"[LocalizedText {Asset_Strings}:bc.cash-register.desc]",
+            DisplayName = $"[LocalizedText {Asset_Strings}:CashRegister_Name]",
+            Description = $"[LocalizedText {Asset_Strings}:CashRegister_Desc]",
             Price = 5000,
             Fragility = 0,
             CanBePlacedOutdoors = true,

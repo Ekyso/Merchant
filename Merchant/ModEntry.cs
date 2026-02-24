@@ -34,14 +34,12 @@ public sealed class ModEntry : Mod
         helper.Events.GameLoop.Saving += OnSaving;
 
         AssetManager.Register();
-
-#if DEBUG
-        DebugEntry(helper);
-#endif
+        GameDelegates.Register();
     }
 
     private void OnSaving(object? sender, SavingEventArgs e)
     {
+        ProgressData?.Write();
         NPCLookup.Clear();
     }
 
@@ -79,29 +77,4 @@ public sealed class ModEntry : Mod
     {
         mon!.Log(msg, level);
     }
-
-    public static bool InteractShowMerchantMenu(SObject _, GameLocation location, Farmer player)
-    {
-        return ShopkeepGame.StartMinigame(help, location, player) != null;
-    }
-
-#if DEBUG
-    private void DebugEntry(IModHelper helper)
-    {
-        helper.ConsoleCommands.Add("merchant-tst", "Begin merchant minigame here", TestMerchantGame);
-    }
-
-    private void TestMerchantGame(string arg1, string[] arg2)
-    {
-        if (Game1.currentMinigame is ShopkeepGame)
-        {
-            Game1.currentMinigame.unload();
-            Game1.currentMinigame = null;
-        }
-        else
-        {
-            ShopkeepGame.StartMinigame(Helper, Game1.currentLocation, Game1.player);
-        }
-    }
-#endif
 }

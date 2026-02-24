@@ -63,7 +63,5 @@ public sealed class MerchantProgressData
             TotalEarningsManual += totalEarnings;
 
         Logs.Add(newLog);
-
-        Write();
     }
 }

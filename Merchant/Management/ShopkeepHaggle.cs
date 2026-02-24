@@ -33,7 +33,7 @@ public sealed record ShopkeepHaggle(
         };
 
         ShopkeepHaggle newHaggle = new(player, buyer, forSaleTarget, minMult, maxMult, PatternFn);
-        newHaggle.SetNextDialogue("Haggle_Ask", true);
+        newHaggle.SetNextDialogue(CxDialogueKind.Haggle_Ask, true);
         newHaggle.CalculateBounds();
         return newHaggle;
     }
@@ -92,10 +92,10 @@ public sealed record ShopkeepHaggle(
     private int pointerPitch = -1;
     private ICue? pointerSound;
 
-    private void SetNextDialogue(string key, bool transitioning = false)
+    private void SetNextDialogue(CxDialogueKind kind, bool transitioning = false)
     {
         Game1.activeClickableMenu = new DialogueBox(
-            Buyer.GetMerchantDialogue(dummySpeaker, key, ForSale.Thing.DisplayName, PickedPrice)
+            Buyer.GetMerchantDialogue(dummySpeaker, kind, ForSale.Thing.DisplayName, PickedPrice)
         )
         {
             showTyping = false,
@@ -120,7 +120,7 @@ public sealed record ShopkeepHaggle(
         }
 
         if (Tries > 0)
-            SetNextDialogue("Haggle_Ask", false);
+            SetNextDialogue(CxDialogueKind.Haggle_Ask, false);
         pointer = 0f;
         pointerPitch = -1;
         state.Current = HaggleState.Increase;
@@ -188,7 +188,7 @@ public sealed record ShopkeepHaggle(
             state.SetNext(HaggleState.Done, pickedPauseMS);
             ForSale.Sold = new(Buyer.Name, ForSale.Thing.QualifiedItemId, PickedPrice);
             Game1.playSound("reward");
-            SetNextDialogue("Haggle_Success");
+            SetNextDialogue(CxDialogueKind.Haggle_Success);
         }
         else if (HaggleExpired())
         {
@@ -204,12 +204,12 @@ public sealed record ShopkeepHaggle(
                     MathF.Ceiling((targetPointer + delta * Random.Shared.NextSingle()) * basePrice) / basePrice;
                 targetOverRange -= nextTargetPointer - targetPointer;
                 state.SetNext(HaggleState.Begin, pickedPauseMS);
-                SetNextDialogue("Haggle_Compromise");
+                SetNextDialogue(CxDialogueKind.Haggle_Compromise);
             }
             else
             {
                 state.SetNext(HaggleState.Begin, pickedPauseMS);
-                SetNextDialogue("Haggle_Overpriced");
+                SetNextDialogue(CxDialogueKind.Haggle_Overpriced);
             }
         }
     }
@@ -223,7 +223,7 @@ public sealed record ShopkeepHaggle(
     {
         state.SetNext(HaggleState.Done, pickedPauseMS);
         Game1.playSound("fishEscape");
-        SetNextDialogue("Haggle_Fail");
+        SetNextDialogue(CxDialogueKind.Haggle_Fail);
     }
     #endregion
 
@@ -246,7 +246,7 @@ public sealed record ShopkeepHaggle(
     private static readonly Rectangle sourceRectHaggleBarCap = new(323, 360, 6, 24);
     private static readonly Rectangle sourceRectHagglePointerA = new(310, 392, 16, 16);
     private static readonly Rectangle sourceRectHagglePointerB = new(294, 392, 16, 16);
-    private static readonly Rectangle sourceRectRemainingTriesBox = new(64, 320, 60, 60);
+    private static readonly Rectangle sourceRectRemainingTriesBox = new(0, 320, 60, 60);
 
     internal void CalculateBounds()
     {
@@ -260,7 +260,7 @@ public sealed record ShopkeepHaggle(
             haggleBarHeight
         );
         haggleBarCapPos = new(haggleBarIconBoxPos.X + haggleBarIconWidth + haggleBarSlideWidth, haggleBarIconBoxPos.Y);
-        remainingTriesBounds = new(haggleBarSlideBounds.X, haggleBarSlideBounds.Y - 60, 180, 60);
+        remainingTriesBounds = new(haggleBarSlideBounds.X, haggleBarSlideBounds.Y - 72, 196, 80);
 
         CalculateTargetPointerBounds();
     }
@@ -295,7 +295,7 @@ public sealed record ShopkeepHaggle(
         {
             b.Draw(
                 Game1.mouseCursors,
-                new(remainingTriesBounds.X + 6 + i * 60, remainingTriesBounds.Y + 6),
+                new(remainingTriesBounds.X + 14 + i * 60, remainingTriesBounds.Y + 14),
                 sourceRectHagglePointerA,
                 Color.White,
                 0f,

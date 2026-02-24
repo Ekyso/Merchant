@@ -1,3 +1,20 @@
 {
-  "minigame.id": "Merchant: Shopkeeping"
+  "minigame.id": "Merchant: Shopkeeping",
+  "fail-reason.no-warps-in": "This building has no entrances for customers.",
+  "fail-reason.invalid-map": "This building's map is invalid.",
+  "fail-reason.no-reachable": "This building has no walkable tiles for customers.",
+  "fail-reason.is-farm-house": "You can't open a shop in your house!",
+  "fail-reason.not-farm-building": "You can only open a shop in your own farm buildings.",
+  "fail-reason.no-items-for-sale": "Put out some items on tables for sale, and make sure the customers can get to them.",
+  "menu.prompt": "Shopkeeping",
+  "menu.start-minigame": "Start managing the shop",
+  "menu.check-bonus": "Check shop decor bonuses",
+  "bonus.title": "By decorating your store, you can sell items for higher prices!",
+  "bonus.decor": "Decor:",
+  "bonus.decor.values": "{{decor}} decorations / {{table}} tables ({{percent}}{{capped}})",
+  "bonus.rug-floor": "Rug/Floor:",
+  "bonus.rug-floor.values": "{{decor}} covered tiles / {{tiles}} reachable tiles ({{percent}}{{capped}})",
+  "bonus.capped": " =",
+  "bonus.total": "Total: {{multBonus}}",
+  "quit-confirm": "Close up the shop early?"
 }

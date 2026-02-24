@@ -6,6 +6,15 @@ using StardewValley.Pathfinding;
 
 namespace Merchant.Management;
 
+public enum CxDialogueKind
+{
+    Haggle_Ask,
+    Haggle_Compromise,
+    Haggle_Overpriced,
+    Haggle_Fail,
+    Haggle_Success,
+}
+
 public sealed class CustomerActor : NPC
 {
     #region make
@@ -30,14 +39,34 @@ public sealed class CustomerActor : NPC
     #endregion
 
     #region social
-    public Dialogue GetMerchantDialogue(NPC dummySpeaker, string key, params object[] substitutions)
+    public Dialogue GetMerchantDialogue(NPC dummySpeaker, CxDialogueKind kind, params object[] substitutions)
     {
         dummySpeaker.Portrait = sourceFriend.Npc.Portrait;
         dummySpeaker.displayName = sourceFriend.Npc.displayName;
+        if (sourceFriend.CxData != null)
+        {
+            string? dialogue = kind switch
+            {
+                CxDialogueKind.Haggle_Ask => sourceFriend.CxData.Dialogue_Haggle_Ask,
+                CxDialogueKind.Haggle_Compromise => sourceFriend.CxData.Dialogue_Haggle_Compromise,
+                CxDialogueKind.Haggle_Overpriced => sourceFriend.CxData.Dialogue_Haggle_Fail,
+                CxDialogueKind.Haggle_Fail => sourceFriend.CxData.Dialogue_Haggle_Overpriced,
+                CxDialogueKind.Haggle_Success => sourceFriend.CxData.Dialogue_Haggle_Success,
+                _ => null,
+            };
+            if (dialogue != null)
+            {
+                return new Dialogue(
+                    dummySpeaker,
+                    string.Concat(AssetManager.Asset_Strings, ":", kind.ToString()),
+                    AssetManager.LoadString(kind.ToString(), substitutions)
+                );
+            }
+        }
         return new Dialogue(
             dummySpeaker,
-            string.Concat(AssetManager.Asset_Strings, ":", key),
-            AssetManager.LoadString(key, substitutions)
+            string.Concat(AssetManager.Asset_Strings, ":", kind.ToString()),
+            AssetManager.LoadString(kind.ToString(), substitutions)
         );
     }
 

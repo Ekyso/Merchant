@@ -1,13 +1,22 @@
-using Microsoft.Xna.Framework;
+using Merchant.Models;
 using StardewValley;
+using StardewValley.Delegates;
 
 namespace Merchant.Misc;
 
 public record FriendEntry(NPC Npc, Friendship Fren, int MaxHeartCount)
 {
     public const int OneHeart = 250;
+    public readonly CustomerData? CxData = AssetManager.GetCustomerData(Npc.Name);
     public float FrenPercent => Fren.Points / (float)(OneHeart * MaxHeartCount);
     public bool IsMaxedHeart => Fren.Points == OneHeart * MaxHeartCount;
+
+    public bool CheckCondition(GameStateQueryContext context)
+    {
+        if (CxData?.Condition == null)
+            return true;
+        return GameStateQuery.CheckConditions(CxData.Condition, context);
+    }
 }
 
 internal static class NPCLookup
@@ -63,11 +72,20 @@ internal static class NPCLookup
 
     private static List<FriendEntry> PopulateSortedNPCList(Farmer player)
     {
+        GameStateQueryContext context = new();
         List<FriendEntry> newSortedList = [];
         Utility.ForEachVillager(npc =>
         {
-            if (npc.CanSocialize && player.friendshipData.TryGetValue(npc.Name, out Friendship friendship))
-                newSortedList.Add(new(npc, friendship, Utility.GetMaximumHeartsForCharacter(npc)));
+            if (
+                npc.Name != null
+                && npc.CanSocialize
+                && player.friendshipData.TryGetValue(npc.Name, out Friendship friendship)
+            )
+            {
+                FriendEntry friendEntry = new(npc, friendship, Utility.GetMaximumHeartsForCharacter(npc));
+                if (friendEntry.CheckCondition(context))
+                    newSortedList.Add(friendEntry);
+            }
             return true;
         });
         newSortedList.Sort(
