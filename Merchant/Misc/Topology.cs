@@ -74,7 +74,7 @@ public static class Topology
     internal static List<Point> TileStandableBFS(
         GameLocation location,
         Point startingTile,
-        CollisionMask collisionMask = ~(CollisionMask.Characters | CollisionMask.Farmers)
+        CollisionMask collisionMask = ~CollisionMask.Characters
     )
     {
         int maxX = location.Map.DisplayWidth / 64;

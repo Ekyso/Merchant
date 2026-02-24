@@ -191,7 +191,7 @@ public sealed record ShopkeepBrowsing(
         }
         if (forSaleTables.Count == 0)
         {
-            failReason = I18n.FailReason_NoReachable();
+            failReason = I18n.FailReason_NoItemsForSale();
             return false;
         }
 

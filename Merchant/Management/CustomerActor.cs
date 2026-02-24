@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Extensions;
 using StardewValley.Pathfinding;
+using StardewValley.TokenizableStrings;
 
 namespace Merchant.Management;
 
@@ -47,11 +48,11 @@ public sealed class CustomerActor : NPC
         {
             string? dialogue = kind switch
             {
-                CxDialogueKind.Haggle_Ask => sourceFriend.CxData.Dialogue_Haggle_Ask,
-                CxDialogueKind.Haggle_Compromise => sourceFriend.CxData.Dialogue_Haggle_Compromise,
-                CxDialogueKind.Haggle_Overpriced => sourceFriend.CxData.Dialogue_Haggle_Fail,
-                CxDialogueKind.Haggle_Fail => sourceFriend.CxData.Dialogue_Haggle_Overpriced,
-                CxDialogueKind.Haggle_Success => sourceFriend.CxData.Dialogue_Haggle_Success,
+                CxDialogueKind.Haggle_Ask => sourceFriend.CxData.Haggle_Ask,
+                CxDialogueKind.Haggle_Compromise => sourceFriend.CxData.Haggle_Compromise,
+                CxDialogueKind.Haggle_Overpriced => sourceFriend.CxData.Haggle_Fail,
+                CxDialogueKind.Haggle_Fail => sourceFriend.CxData.Haggle_Overpriced,
+                CxDialogueKind.Haggle_Success => sourceFriend.CxData.Haggle_Success,
                 _ => null,
             };
             if (dialogue != null)
@@ -59,7 +60,7 @@ public sealed class CustomerActor : NPC
                 return new Dialogue(
                     dummySpeaker,
                     string.Concat(AssetManager.Asset_Strings, ":", kind.ToString()),
-                    AssetManager.LoadString(kind.ToString(), substitutions)
+                    string.Format(TokenParser.ParseText(dialogue) ?? dialogue, substitutions)
                 );
             }
         }
