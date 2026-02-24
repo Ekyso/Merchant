@@ -15,7 +15,6 @@ public sealed class StateManager<T>(T defaultValue)
             Next = value;
             Timer = TimeSpan.Zero;
             changeCallback = null;
-            ModEntry.LogDebug(ToString());
         }
     } = defaultValue;
     public T Next { get; private set; } = defaultValue;

@@ -5,7 +5,6 @@ using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
-using StardewValley.Extensions;
 using StardewValley.GameData;
 using StardewValley.Minigames;
 
@@ -54,7 +53,7 @@ public sealed class ShopkeepGame : IMinigame
     {
         // adjust minigame rendering timing by nulling it before render
         if (Game1.currentMinigame == this)
-            Game1.currentMinigame = null;
+            DynamicMethods.Set_Game1_currentMinigame(null);
     }
 
     private void OnRendered(object? sender, RenderedEventArgs e)
@@ -62,7 +61,7 @@ public sealed class ShopkeepGame : IMinigame
         // restore minigame after render
         if (Game1.currentMinigame == null)
         {
-            Game1.currentMinigame = this;
+            DynamicMethods.Set_Game1_currentMinigame(this);
             draw(e.SpriteBatch);
         }
     }
@@ -175,7 +174,7 @@ public sealed class ShopkeepGame : IMinigame
     #region gameloop start
     private void DoStart(GameTime time)
     {
-        state.SetNext(GameLoopState.Browse, 100);
+        state.SetNext(GameLoopState.Browse, 1000);
     }
     #endregion
 

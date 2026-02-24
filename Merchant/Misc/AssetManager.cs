@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.GameData;
 using StardewValley.GameData.BigCraftables;
 using StardewValley.GameData.Machines;
 
@@ -13,6 +14,7 @@ internal static class AssetManager
     internal const string Asset_Strings = $"{ModEntry.ModId}\\Strings";
     internal const string CashRegisterId = $"{ModEntry.ModId}_CashRegister";
     internal const string CashRegisterQId = $"(BC){ModEntry.ModId}_CashRegister";
+    internal const string DoorbellCue = $"{ModEntry.ModId}_doorbell";
 
     public static void Register()
     {
@@ -42,6 +44,10 @@ internal static class AssetManager
         {
             e.LoadFromModFile<Texture2D>("assets/cashregister.png", AssetLoadPriority.Low);
         }
+        else if (name.IsEquivalentTo("Data/AudioChanges"))
+        {
+            e.Edit(Edit_AudioChanges, AssetEditPriority.Default);
+        }
         else if (name.IsEquivalentTo(Asset_Strings))
         {
             string stringsAsset = Path.Combine("i18n", e.Name.LanguageCode.ToString() ?? "default", "strings.json");
@@ -54,6 +60,26 @@ internal static class AssetManager
                 e.LoadFromModFile<Dictionary<string, string>>("i18n/default/strings.json", AssetLoadPriority.Exclusive);
             }
         }
+    }
+
+    private static void Edit_AudioChanges(IAssetData asset)
+    {
+        IDictionary<string, AudioCueData> data = asset.AsDictionary<string, AudioCueData>().Data;
+        data[DoorbellCue] = new()
+        {
+            Id = DoorbellCue,
+            FilePaths =
+            [
+                Path.Combine(ModEntry.help.DirectoryPath, "assets", "doorbell01.ogg"),
+                Path.Combine(ModEntry.help.DirectoryPath, "assets", "doorbell02.ogg"),
+                Path.Combine(ModEntry.help.DirectoryPath, "assets", "doorbell03.ogg"),
+                Path.Combine(ModEntry.help.DirectoryPath, "assets", "doorbell04.ogg"),
+            ],
+            Category = "Sound",
+            StreamedVorbis = false,
+            Looped = false,
+            UseReverb = true,
+        };
     }
 
     public static void Edit_Machines(IAssetData asset)

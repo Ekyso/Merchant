@@ -27,6 +27,19 @@ public sealed record ShopkeepHaggle(
         newHaggle.CalculateBounds();
         return newHaggle;
     }
+
+    internal static readonly NPC dummySpeaker = new(
+        new AnimatedSprite("Characters\\Abigail", 0, 16, 16),
+        Vector2.Zero,
+        "",
+        0,
+        "???",
+        Game1.staminaRect,
+        eventActor: false
+    )
+    {
+        portraitOverridden = true,
+    };
     #endregion
 
     #region haggle loop
@@ -50,8 +63,8 @@ public sealed record ShopkeepHaggle(
     private float pointer = 0;
 
     public int Tries { get; private set; } = 0;
-    private float targetPointer = Buyer.GetHaggleBaseTargetPointer(ForSale.Thing);
-    private readonly float targetOverRange = Buyer.GetHaggleTargetOverRange();
+    private float targetPointer = Buyer.GetHaggleBaseTargetPointer(ForSale);
+    private float targetOverRange = Buyer.GetHaggleTargetOverRange();
     private float nextTargetPointer = -1;
     public float PickedMult
     {
@@ -72,7 +85,7 @@ public sealed record ShopkeepHaggle(
     private void SetNextDialogue(string key, bool transitioning = false)
     {
         Game1.activeClickableMenu = new DialogueBox(
-            Buyer.GetMerchantDialogue(key, ForSale.Thing.DisplayName, PickedPrice)
+            Buyer.GetMerchantDialogue(dummySpeaker, key, ForSale.Thing.DisplayName, PickedPrice)
         )
         {
             showTyping = false,
@@ -106,7 +119,7 @@ public sealed record ShopkeepHaggle(
         switch (state.Current)
         {
             case HaggleState.Done:
-                Buyer.DoneHaggling();
+                Buyer.LeaveTheShop();
                 Game1.exitActiveMenu();
                 return true;
             case HaggleState.Begin:
@@ -128,6 +141,7 @@ public sealed record ShopkeepHaggle(
         {
             pointerSound?.Stop(AudioStopOptions.Immediate);
             Game1.playSound("flute", pitch, out pointerSound);
+            pointerSound.Volume = 0.1f * Game1.options.soundVolumeLevel;
             pointerPitch = pitch;
         }
 
@@ -155,9 +169,12 @@ public sealed record ShopkeepHaggle(
         else
         {
             Game1.playSound("smallSelect");
+            float delta = pointer - targetPointer;
             if (pointer - targetPointer <= targetOverRange)
             {
-                nextTargetPointer = Utility.Lerp(targetPointer, pointer, Random.Shared.NextSingle());
+                float nextIncrease = delta * Random.Shared.NextSingle();
+                targetOverRange -= nextIncrease;
+                nextTargetPointer = targetPointer + nextIncrease;
                 state.SetNext(HaggleState.Begin, pickedPauseMS);
                 SetNextDialogue("Haggle_Compromise");
             }
@@ -201,7 +218,7 @@ public sealed record ShopkeepHaggle(
     private Vector2 haggleBarCapPos = Vector2.Zero;
     private Vector2 targetPointerPos = Vector2.Zero;
     private Rectangle remainingTriesBounds = Rectangle.Empty;
-    private Rectangle buyerMugShotRect = Buyer.getMugShotSourceRect();
+    private Rectangle buyerMugShotRect = Buyer.sourceFriend.Npc.getMugShotSourceRect();
 
     private static readonly Rectangle sourceRectHaggleBarIconBox = new(293, 360, 26, 24);
     private static readonly Rectangle sourceRectHaggleBarSlide = new(319, 360, 1, 24);

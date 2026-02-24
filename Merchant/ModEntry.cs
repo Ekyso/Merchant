@@ -23,7 +23,10 @@ public sealed class ModEntry : Mod
 
     public override void Entry(IModHelper helper)
     {
+        DynamicMethods.Make();
+
         I18n.Init(helper.Translation);
+
         mon = Monitor;
         help = helper;
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;

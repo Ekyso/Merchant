@@ -1,14 +1,23 @@
-using Merchant.Misc;
+using Microsoft.Xna.Framework;
 using StardewValley;
+
+namespace Merchant.Misc;
+
+public record FriendEntry(NPC Npc, Friendship Fren, int MaxHeartCount)
+{
+    public const int OneHeart = 250;
+    public float FrenPercent => Fren.Points / (float)(OneHeart * MaxHeartCount);
+    public bool IsMaxedHeart => Fren.Points == OneHeart * MaxHeartCount;
+}
 
 internal static class NPCLookup
 {
-    private static List<NPC>? sorted = null;
+    private static List<FriendEntry>? sorted = null;
     private static int bisect = 0;
 
     internal static void Clear() => sorted = null;
 
-    internal static IEnumerable<NPC> PickNRandomNPCs(Farmer player, int count = 10, int startIdx = 0)
+    internal static IEnumerable<FriendEntry> PickNRandomNPCs(Farmer player, int count = 10, int startIdx = 0)
     {
         sorted ??= PopulateSortedNPCList(player);
         int validCount = sorted.Count - startIdx;
@@ -22,16 +31,16 @@ internal static class NPCLookup
         }
     }
 
-    internal static IEnumerable<NPC> PickCustomerNPCs(Farmer player, int maxCount)
+    internal static IEnumerable<FriendEntry> PickCustomerNPCs(Farmer player, int maxCount)
     {
-        foreach (NPC npc in PickNRandomNPCs(player, 4, bisect))
+        foreach (FriendEntry npc in PickNRandomNPCs(player, 4, bisect))
         {
             maxCount--;
             yield return npc;
             if (maxCount == 0)
                 yield break;
         }
-        foreach (NPC npc in PickNRandomNPCs(player, 8, 0))
+        foreach (FriendEntry npc in PickNRandomNPCs(player, 8, 0))
         {
             maxCount--;
             yield return npc;
@@ -40,38 +49,27 @@ internal static class NPCLookup
         }
     }
 
-    private static List<NPC> PopulateSortedNPCList(Farmer player)
+    private static List<FriendEntry> PopulateSortedNPCList(Farmer player)
     {
-        List<NPC> newSortedList = [];
+        List<FriendEntry> newSortedList = [];
         Utility.ForEachVillager(npc =>
         {
-            if (npc.CanSocialize)
-                newSortedList.Add(npc);
+            if (npc.CanSocialize && player.friendshipData.TryGetValue(npc.Name, out Friendship friendship))
+                newSortedList.Add(new(npc, friendship, Utility.GetMaximumHeartsForCharacter(npc)));
             return true;
         });
         newSortedList.Sort(
             (npcA, npcB) =>
             {
-                int? friendshipA = player.tryGetFriendshipLevelForNPC(npcA.Name);
-                int? friendshipB = player.tryGetFriendshipLevelForNPC(npcB.Name);
-                if (friendshipA == friendshipB)
+                if (npcA.Fren.Points == npcB.Fren.Points)
                     return 0;
-                if (friendshipA == null)
-                    return -1;
-                if (friendshipB == null)
-                    return 1;
-                return (friendshipA.Value / (float)Utility.GetMaximumHeartsForCharacter(npcA)).CompareTo(
-                    friendshipB.Value / (float)Utility.GetMaximumHeartsForCharacter(npcB)
-                );
+                return npcA.FrenPercent.CompareTo(npcB.FrenPercent);
             }
         );
         bisect = newSortedList.Count;
         for (int i = 0; i < newSortedList.Count; i++)
         {
-            if (
-                player.getFriendshipHeartLevelForNPC(newSortedList[i].Name)
-                >= Utility.GetMaximumHeartsForCharacter(newSortedList[i])
-            )
+            if (newSortedList[i].IsMaxedHeart)
             {
                 bisect = i;
                 break;

@@ -2,7 +2,6 @@ using Merchant.Misc;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Extensions;
-using StardewValley.GameData.Characters;
 using StardewValley.Pathfinding;
 
 namespace Merchant.Management;
@@ -10,39 +9,33 @@ namespace Merchant.Management;
 public sealed class CustomerActor : NPC
 {
     #region make
-    private readonly Friendship? friendship;
     private readonly Point entryPoint;
+    internal readonly FriendEntry sourceFriend;
 
-    public CustomerActor(NPC sourceNPC, GameLocation location, Farmer player, Point entryPoint)
+    public CustomerActor(FriendEntry sourceFriend, Point entryPoint)
         : base(
-            new AnimatedSprite(sourceNPC.Sprite.textureName.Value),
+            new AnimatedSprite(sourceFriend.Npc.Sprite.textureName.Value),
             Vector2.Zero,
-            location.NameOrUniqueName,
-            sourceNPC.FacingDirection,
-            sourceNPC.Name,
-            sourceNPC.Portrait,
-            true
+            sourceFriend.Npc.speed,
+            sourceFriend.Npc.Name
         )
     {
-        NetFields.CopyFrom(sourceNPC.NetFields);
+        NetFields.CopyFrom(sourceFriend.Npc.NetFields);
+        this.sourceFriend = sourceFriend;
         this.entryPoint = entryPoint;
         forceOneTileWide.Value = true;
         followSchedule = false;
-        if (!player.friendshipData.TryGetValue(sourceNPC.Name, out friendship))
-        {
-            friendship = null;
-        }
+        EventActor = true;
     }
     #endregion
 
     #region social
-    public Dialogue GetMerchantDialogue(string key, params object[] substitutions)
+    public Dialogue GetMerchantDialogue(NPC dummySpeaker, string key, params object[] substitutions)
     {
-        string merchantKey = $"{ModEntry.ModId}_{key}";
-        if (TryGetDialogue(merchantKey, substitutions) is Dialogue dialogue)
-            return dialogue;
+        dummySpeaker.Portrait = sourceFriend.Npc.Portrait;
+        dummySpeaker.displayName = sourceFriend.Npc.displayName;
         return new Dialogue(
-            this,
+            dummySpeaker,
             string.Concat(AssetManager.Asset_Strings, ":", key),
             AssetManager.LoadString(key, substitutions)
         );
@@ -51,17 +44,16 @@ public sealed class CustomerActor : NPC
     public float GetFriendshipHaggleBonus()
     {
         // TODO: custom haggle bonus
-        if (friendship == null)
-            return 0.1f;
-        if (friendship.Points <= 1)
+        if (sourceFriend.Fren.Points <= 1)
             return 0.15f;
-        return 0.15f + MathF.Log10(friendship.Points / 2000f) * 0.25f;
+        return 0.15f + MathF.Log10(sourceFriend.Fren.Points / 2000f) * 0.25f;
     }
 
-    public float GetHaggleBaseTargetPointer(Item forSale)
+    public float GetHaggleBaseTargetPointer(ForSaleTarget forSale)
     {
         float haggleBaseTarget = GetFriendshipHaggleBonus();
-        switch (getGiftTasteForThisItem(forSale))
+        int giftTaste = GetGiftTasteForSaleItem(forSale);
+        switch (giftTaste)
         {
             case gift_taste_stardroptea:
             case gift_taste_love:
@@ -77,9 +69,24 @@ public sealed class CustomerActor : NPC
     public float GetHaggleTargetOverRange()
     {
         // TODO: custom target over range bonus
-        if (friendship == null)
-            return 0.1f;
-        return 0.2f + Math.Min(0.4f, friendship.Points / 50000f);
+        if (sourceFriend.Fren == null)
+            return 0.25f;
+        // 0.05f per heart, up to 0.25f
+        if (sourceFriend.Fren.Points >= 1250)
+            return 0.5f;
+        return 0.25f + 0.05f * sourceFriend.Fren.Points / 250f;
+    }
+
+    private readonly Dictionary<ForSaleTarget, int> cachedGiftTastes = [];
+
+    private int GetGiftTasteForSaleItem(ForSaleTarget forSale)
+    {
+        if (!cachedGiftTastes.TryGetValue(forSale, out int giftTaste))
+        {
+            giftTaste = sourceFriend.Npc.getGiftTasteForThisItem(forSale.Thing);
+            cachedGiftTastes[forSale] = giftTaste;
+        }
+        return giftTaste;
     }
     #endregion
 
@@ -88,7 +95,8 @@ public sealed class CustomerActor : NPC
     {
         Await,
         Move,
-        Check,
+        Considering,
+        Decide,
         Buy,
         Leaving,
         Finished,
@@ -109,7 +117,7 @@ public sealed class CustomerActor : NPC
         }
     }
 
-    public bool IsLeaving => state.Current == ActorState.Leaving || state.Current == ActorState.Finished;
+    public bool IsLeavingOrFinished => state.Current == ActorState.Leaving || state.Current == ActorState.Finished;
 
     public void UpdateBuyTarget(
         List<ForSaleTarget>? availableForSale,
@@ -135,7 +143,7 @@ public sealed class CustomerActor : NPC
             {
                 if (availableForSaleHeld == null)
                 {
-                    DoneHaggling();
+                    LeaveTheShop();
                 }
                 return;
             }
@@ -147,32 +155,36 @@ public sealed class CustomerActor : NPC
             List<ForSaleTarget> likedForSaleTargets = availableForSale.Where(ForSaleNotHated).ToList();
             if (likedForSaleTargets.Count == 0)
             {
-                if (availableForSaleHeld == null || !availableForSaleHeld.Where(ForSaleNotHated).Any())
+                if (availableForSaleHeld == null)
                 {
-                    DoneHaggling();
+                    LeaveTheShop();
+                    return;
                 }
-                return;
+                else
+                {
+                    ForSale = Random.Shared.ChooseFrom(availableForSale);
+                }
             }
-            ForSale = Random.Shared.ChooseFrom(likedForSaleTargets);
+            else
+            {
+                ForSale = Random.Shared.ChooseFrom(likedForSaleTargets);
+            }
+
             (Point endPoint, int facing) = Random.Shared.ChooseFrom(ForSale.BrowseAround);
+            browsedCount++;
             controller = new PathFindController(this, currentLocation, endPoint, facing, ReachedForSaleItem);
         }
     }
 
-    private readonly Dictionary<ForSaleTarget, int> cachedGiftTastes = [];
-
     private bool ForSaleNotHated(ForSaleTarget forSale)
     {
-        if (!cachedGiftTastes.TryGetValue(forSale, out int giftTaste))
-        {
-            giftTaste = getGiftTasteForThisItem(forSale.Thing);
-            cachedGiftTastes[forSale] = giftTaste;
-        }
+        int giftTaste = GetGiftTasteForSaleItem(forSale);
         return giftTaste != gift_taste_dislike && giftTaste != gift_taste_hate;
     }
 
     private void FinishedBuying(Character c, GameLocation location)
     {
+        ModEntry.Log($"FinishedBuying {c.displayName}");
         ForSale = null;
         cachedGiftTastes.Clear();
         state.Current = ActorState.Finished;
@@ -181,21 +193,32 @@ public sealed class CustomerActor : NPC
 
     private void ReachedForSaleItem(Character c, GameLocation location)
     {
-        state.Current = ActorState.Check;
-        browsedCount++;
-        if (Random.Shared.NextSingle() < 0.3f + browsedCount * 0.1f)
-        {
-            doEmote(16);
-            state.SetNext(ActorState.Buy, 1000);
-        }
-        else
-        {
-            ForSale = null;
-            state.SetNext(browsedCount >= maxBrowsedCount ? ActorState.Leaving : ActorState.Await, 1000);
-        }
+        state.Current = ActorState.Considering;
+        state.SetNext(ActorState.Decide, Random.Shared.NextSingle() * 1000, DecideBuy);
     }
 
-    internal void DoneHaggling()
+    private void DecideBuy(ActorState oldState, ActorState newState)
+    {
+        if (ForSale != null)
+        {
+            int giftTaste = GetGiftTasteForSaleItem(ForSale);
+            if (
+                giftTaste != gift_taste_dislike
+                && giftTaste != gift_taste_hate
+                && Random.Shared.NextSingle() < 0.3f + browsedCount * 0.1f
+            )
+            {
+                doEmote(giftTaste == gift_taste_love ? 20 : 32);
+                state.SetNext(ActorState.Buy, 500);
+                return;
+            }
+        }
+
+        ForSale = null;
+        state.SetNext(browsedCount >= maxBrowsedCount ? ActorState.Leaving : ActorState.Await, 500);
+    }
+
+    internal void LeaveTheShop()
     {
         ForSale = null;
         state.Current = ActorState.Leaving;

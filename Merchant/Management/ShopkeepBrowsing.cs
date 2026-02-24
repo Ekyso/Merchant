@@ -118,9 +118,9 @@ public sealed record ShopkeepBrowsing(
 
         // customers
         List<CustomerActor> customerActors = [];
-        foreach (NPC sourceNPC in NPCLookup.PickCustomerNPCs(player, forSaleTables.Count))
+        foreach (FriendEntry sourceNPC in NPCLookup.PickCustomerNPCs(player, forSaleTables.Count))
         {
-            customerActors.Add(new CustomerActor(sourceNPC, location, player, entryPoint));
+            customerActors.Add(new CustomerActor(sourceNPC, entryPoint));
         }
 
         float shopDecorBonus = 0;
@@ -211,9 +211,9 @@ public sealed record ShopkeepBrowsing(
             return true;
         }
 
-        if (waitingActors.Count == 0 && dispatchedActors.All(actor => actor.IsLeaving))
+        if (waitingActors.Count == 0 && dispatchedActors.All(actor => actor.IsLeavingOrFinished))
         {
-            state.Current = BrowsingState.Finished;
+            state.SetNext(BrowsingState.Finished, 5000);
             return true;
         }
 
@@ -226,7 +226,7 @@ public sealed record ShopkeepBrowsing(
             }
             else if (state.Next != BrowsingState.Finished)
             {
-                state.SetNext(BrowsingState.Finished, 30000);
+                state.SetNext(BrowsingState.Finished, 5000);
                 return false;
             }
         }
@@ -274,11 +274,12 @@ public sealed record ShopkeepBrowsing(
         {
             return false;
         }
+        ModEntry.LogDebug($"AddNewCustomer {nextActor.Name}");
+        dispatchedActors.Add(nextActor);
         nextActor.currentLocation = Location;
         nextActor.setTileLocation(EntryPoint.ToVector2());
-        ModEntry.LogDebug($"AddNewCustomer {nextActor.Name}");
         Location.characters.Add(nextActor);
-        dispatchedActors.Add(nextActor);
+        Game1.playSound(AssetManager.DoorbellCue, 1100 + (int)(300 * Random.Shared.NextSingle()));
         return true;
     }
 
