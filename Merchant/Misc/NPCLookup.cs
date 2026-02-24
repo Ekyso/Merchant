@@ -17,13 +17,24 @@ internal static class NPCLookup
 
     internal static void Clear() => sorted = null;
 
-    internal static IEnumerable<FriendEntry> PickNRandomNPCs(Farmer player, int count = 10, int startIdx = 0)
+    private static IEnumerable<FriendEntry> PickNRandomNPCs(Farmer player, int count, bool bestFriendsOnly)
     {
         sorted ??= PopulateSortedNPCList(player);
-        int validCount = sorted.Count - startIdx;
-        if (validCount == 0)
+
+        List<int> ranges;
+        if (bestFriendsOnly)
+        {
+            if (bisect == sorted.Count)
+                yield break;
+            ranges = Enumerable.Range(bisect, sorted.Count - bisect).ToList();
+        }
+        else
+        {
+            ranges = Enumerable.Range(0, bisect).ToList();
+        }
+        if (ranges.Count == 0)
             yield break;
-        List<int> ranges = Enumerable.Range(startIdx, validCount).ToList();
+
         Random.Shared.ShuffleInPlace(ranges);
         for (int i = 0; i < Math.Min(ranges.Count, count); i++)
         {
@@ -33,14 +44,15 @@ internal static class NPCLookup
 
     internal static IEnumerable<FriendEntry> PickCustomerNPCs(Farmer player, int maxCount)
     {
-        foreach (FriendEntry npc in PickNRandomNPCs(player, 4, bisect))
+        maxCount = Math.Min(maxCount, 15);
+        foreach (FriendEntry npc in PickNRandomNPCs(player, 5, true))
         {
             maxCount--;
             yield return npc;
             if (maxCount == 0)
                 yield break;
         }
-        foreach (FriendEntry npc in PickNRandomNPCs(player, 8, 0))
+        foreach (FriendEntry npc in PickNRandomNPCs(player, maxCount, false))
         {
             maxCount--;
             yield return npc;

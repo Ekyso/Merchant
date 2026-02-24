@@ -69,12 +69,10 @@ public sealed class CustomerActor : NPC
     public float GetHaggleTargetOverRange()
     {
         // TODO: custom target over range bonus
-        if (sourceFriend.Fren == null)
-            return 0.25f;
         // 0.05f per heart, up to 0.25f
         if (sourceFriend.Fren.Points >= 1250)
-            return 0.5f;
-        return 0.25f + 0.05f * sourceFriend.Fren.Points / 250f;
+            return 0.25f;
+        return 0.05f * (sourceFriend.Fren.Points / 250f);
     }
 
     private readonly Dictionary<ForSaleTarget, int> cachedGiftTastes = [];
@@ -100,12 +98,13 @@ public sealed class CustomerActor : NPC
         Buy,
         Leaving,
         Finished,
+        Decorative,
     }
 
     private readonly StateManager<ActorState> state = new(ActorState.Await);
 
     private int browsedCount = 0;
-    private const int maxBrowsedCount = 5;
+    private readonly int maxBrowsedCount = Random.Shared.Next(4, 7);
     public ForSaleTarget? ForSale
     {
         get => field;
@@ -142,59 +141,55 @@ public sealed class CustomerActor : NPC
             if (availableForSale == null)
             {
                 if (availableForSaleHeld == null)
-                {
-                    LeaveTheShop();
-                }
+                    LeavingTheShop();
                 return;
             }
             if (availableForSale.Count == 0)
             {
                 return;
             }
-            state.Current = ActorState.Move;
-            List<ForSaleTarget> likedForSaleTargets = availableForSale.Where(ForSaleNotHated).ToList();
-            if (likedForSaleTargets.Count == 0)
+
+            List<ForSaleTarget> preferredForSaleTargets = availableForSale
+                .Where(forSale =>
+                {
+                    int giftTaste = GetGiftTasteForSaleItem(forSale);
+                    return giftTaste != gift_taste_hate && giftTaste != gift_taste_dislike;
+                })
+                .ToList();
+
+            ForSaleTarget nextForSale;
+            if (preferredForSaleTargets.Count > 0)
             {
-                if (availableForSaleHeld == null)
-                {
-                    LeaveTheShop();
-                    return;
-                }
-                else
-                {
-                    ForSale = Random.Shared.ChooseFrom(availableForSale);
-                }
+                nextForSale = Random.Shared.ChooseFrom(preferredForSaleTargets);
+            }
+            else if (availableForSale.Count > 0)
+            {
+                nextForSale = Random.Shared.ChooseFrom(availableForSale);
             }
             else
             {
-                ForSale = Random.Shared.ChooseFrom(likedForSaleTargets);
+                if (availableForSaleHeld == null)
+                    LeavingTheShop();
+                return;
             }
 
-            (Point endPoint, int facing) = Random.Shared.ChooseFrom(ForSale.BrowseAround);
             browsedCount++;
+            if (nextForSale == ForSale)
+            {
+                return;
+            }
+            ForSale = nextForSale;
+
+            state.Current = ActorState.Move;
+            (Point endPoint, int facing) = Random.Shared.ChooseFrom(ForSale.BrowseAround);
             controller = new PathFindController(this, currentLocation, endPoint, facing, ReachedForSaleItem);
         }
-    }
-
-    private bool ForSaleNotHated(ForSaleTarget forSale)
-    {
-        int giftTaste = GetGiftTasteForSaleItem(forSale);
-        return giftTaste != gift_taste_dislike && giftTaste != gift_taste_hate;
-    }
-
-    private void FinishedBuying(Character c, GameLocation location)
-    {
-        ModEntry.Log($"FinishedBuying {c.displayName}");
-        ForSale = null;
-        cachedGiftTastes.Clear();
-        state.Current = ActorState.Finished;
-        location.characters.Remove(this);
     }
 
     private void ReachedForSaleItem(Character c, GameLocation location)
     {
         state.Current = ActorState.Considering;
-        state.SetNext(ActorState.Decide, Random.Shared.NextSingle() * 1000, DecideBuy);
+        state.SetNext(ActorState.Decide, Random.Shared.NextSingle() * 750, DecideBuy);
     }
 
     private void DecideBuy(ActorState oldState, ActorState newState)
@@ -202,27 +197,37 @@ public sealed class CustomerActor : NPC
         if (ForSale != null)
         {
             int giftTaste = GetGiftTasteForSaleItem(ForSale);
-            if (
-                giftTaste != gift_taste_dislike
-                && giftTaste != gift_taste_hate
-                && Random.Shared.NextSingle() < 0.3f + browsedCount * 0.1f
-            )
+            if (Random.Shared.NextSingle() < 0.3f + browsedCount * 0.1f)
             {
-                doEmote(giftTaste == gift_taste_love ? 20 : 32);
+                doEmote(giftTaste == gift_taste_love ? 20 : 16);
                 state.SetNext(ActorState.Buy, 500);
                 return;
             }
         }
 
         ForSale = null;
-        state.SetNext(browsedCount >= maxBrowsedCount ? ActorState.Leaving : ActorState.Await, 500);
+        state.SetNext(
+            browsedCount >= maxBrowsedCount ? ActorState.Leaving : ActorState.Await,
+            Random.Shared.NextSingle() * 750
+        );
     }
 
-    internal void LeaveTheShop()
+    internal void LeavingTheShop()
     {
+        if (IsLeavingOrFinished)
+            return;
         ForSale = null;
         state.Current = ActorState.Leaving;
-        controller = new PathFindController(this, currentLocation, entryPoint, -1, FinishedBuying);
+        controller = new PathFindController(this, currentLocation, entryPoint, -1, LeftTheShop);
+    }
+
+    private void LeftTheShop(Character c, GameLocation location)
+    {
+        ModEntry.Log($"LeftTheShop {c.displayName}");
+        ForSale = null;
+        cachedGiftTastes.Clear();
+        state.Current = ActorState.Finished;
+        location.characters.Remove(this);
     }
 
     public override void update(GameTime time, GameLocation location)
@@ -231,7 +236,7 @@ public sealed class CustomerActor : NPC
         state.Update(time);
         if (state.Current == ActorState.Leaving && TilePoint == entryPoint)
         {
-            FinishedBuying(this, location);
+            LeftTheShop(this, location);
         }
     }
     #endregion

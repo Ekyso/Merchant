@@ -1,3 +1,4 @@
+using Merchant.Misc;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,7 +12,8 @@ public sealed record ShopkeepHaggle(
     CustomerActor Buyer,
     ForSaleTarget ForSale,
     float MinMult,
-    float MaxMult
+    float MaxMult,
+    Func<float, float> PatternFn
 )
 {
     #region make
@@ -22,7 +24,15 @@ public sealed record ShopkeepHaggle(
 
         ModEntry.LogDebug($"Haggle Mult: {minMult} -> {maxMult}");
 
-        ShopkeepHaggle newHaggle = new(player, buyer, forSaleTarget, minMult, maxMult);
+        int whichFn = Random.Shared.Next(0, 3);
+        Func<float, float> PatternFn = whichFn switch
+        {
+            1 => Ease.OutQuad,
+            2 => Ease.InOutCubic,
+            _ => Ease.InQuad,
+        };
+
+        ShopkeepHaggle newHaggle = new(player, buyer, forSaleTarget, minMult, maxMult, PatternFn);
         newHaggle.SetNextDialogue("Haggle_Ask", true);
         newHaggle.CalculateBounds();
         return newHaggle;
@@ -64,8 +74,9 @@ public sealed record ShopkeepHaggle(
 
     public int Tries { get; private set; } = 0;
     private float targetPointer = Buyer.GetHaggleBaseTargetPointer(ForSale);
-    private float targetOverRange = Buyer.GetHaggleTargetOverRange();
+    private float targetOverRange = 0.25f * Random.Shared.NextSingle() + Buyer.GetHaggleTargetOverRange();
     private float nextTargetPointer = -1;
+    private readonly uint basePrice = (uint)Math.Max(ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID), 1);
     public float PickedMult
     {
         get => field;
@@ -73,8 +84,7 @@ public sealed record ShopkeepHaggle(
         {
             field = value;
             if (value >= 0)
-                PickedPrice = (uint)
-                    MathF.Ceiling(ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID) * PickedMult);
+                PickedPrice = (uint)Math.Ceiling(basePrice * PickedMult);
         }
     } = MinMult;
     public uint PickedPrice { get; private set; } = (uint)ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID);
@@ -94,8 +104,14 @@ public sealed record ShopkeepHaggle(
         };
     }
 
-    private bool BeginHaggleRound()
+    private void BeginHaggleRound()
     {
+        if (HaggleExpired())
+        {
+            state.Current = HaggleState.Picked;
+            SetupHaggleFailed();
+            return;
+        }
         if (nextTargetPointer > -1)
         {
             targetPointer = nextTargetPointer;
@@ -110,30 +126,42 @@ public sealed record ShopkeepHaggle(
         state.Current = HaggleState.Increase;
         state.SetNext(HaggleState.Decrease, pointerPeriodMS, State_DecreaseStart);
         Tries++;
-        return false;
     }
 
     public bool Update(GameTime time)
     {
         state.Update(time);
+        float targetPtrBound = targetPointer;
+        float nextPointer = pointer;
         switch (state.Current)
         {
             case HaggleState.Done:
-                Buyer.LeaveTheShop();
+                Buyer.LeavingTheShop();
                 Game1.exitActiveMenu();
                 return true;
             case HaggleState.Begin:
-                return BeginHaggleRound();
+                BeginHaggleRound();
+                return false;
             case HaggleState.Picked:
                 if (nextTargetPointer > -1)
                     CalculateTargetPointerBounds(true);
                 return false;
             case HaggleState.Increase:
-                pointer = MathF.Pow((float)(1.0 - state.TimerProgress), 2);
+                targetPtrBound -= 0.1f;
+                nextPointer = PatternFn((float)(1.0 - state.TimerProgress));
                 break;
             case HaggleState.Decrease:
-                pointer = MathF.Pow(state.TimerProgress, 2);
+                targetPtrBound += 0.11f;
+                nextPointer = PatternFn(state.TimerProgress);
                 break;
+        }
+
+        bool preState = pointer <= targetPtrBound;
+        pointer = nextPointer;
+        bool postState = pointer <= targetPtrBound;
+        if (preState != postState)
+        {
+            Game1.playSound("junimoKart_coin");
         }
 
         int pitch = (int)(pointer * totalPitch) * 100;
@@ -172,9 +200,9 @@ public sealed record ShopkeepHaggle(
             float delta = pointer - targetPointer;
             if (pointer - targetPointer <= targetOverRange)
             {
-                float nextIncrease = delta * Random.Shared.NextSingle();
-                targetOverRange -= nextIncrease;
-                nextTargetPointer = targetPointer + nextIncrease;
+                nextTargetPointer =
+                    MathF.Ceiling((targetPointer + delta * Random.Shared.NextSingle()) * basePrice) / basePrice;
+                targetOverRange -= nextTargetPointer - targetPointer;
                 state.SetNext(HaggleState.Begin, pickedPauseMS);
                 SetNextDialogue("Haggle_Compromise");
             }
@@ -188,14 +216,7 @@ public sealed record ShopkeepHaggle(
 
     private void State_DecreaseStart(HaggleState oldState, HaggleState newState)
     {
-        if (HaggleExpired())
-        {
-            SetupHaggleFailed();
-        }
-        else
-        {
-            state.SetNext(HaggleState.Begin, pickedPauseMS);
-        }
+        state.SetNext(HaggleState.Begin, pickedPauseMS);
     }
 
     private void SetupHaggleFailed()
@@ -225,7 +246,7 @@ public sealed record ShopkeepHaggle(
     private static readonly Rectangle sourceRectHaggleBarCap = new(323, 360, 6, 24);
     private static readonly Rectangle sourceRectHagglePointerA = new(310, 392, 16, 16);
     private static readonly Rectangle sourceRectHagglePointerB = new(294, 392, 16, 16);
-    private static readonly Rectangle sourceRectRemainingTriesBox = new(0, 320, 60, 60);
+    private static readonly Rectangle sourceRectRemainingTriesBox = new(64, 320, 60, 60);
 
     internal void CalculateBounds()
     {
@@ -270,7 +291,7 @@ public sealed record ShopkeepHaggle(
             remainingTriesBounds.Height,
             Color.White
         );
-        for (int i = 0; i <= maxTries - Tries; i++)
+        for (int i = 0; i <= maxTries - Math.Max(Tries, 1); i++)
         {
             b.Draw(
                 Game1.mouseCursors,
