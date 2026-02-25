@@ -18,7 +18,6 @@ public sealed class ShopkeepGame : IMinigame
     private readonly Farmer player;
 
     #region state
-    private TimeSpan gameTimer = TimeSpan.Zero;
 
     internal enum GameLoopState
     {
@@ -125,10 +124,6 @@ public sealed class ShopkeepGame : IMinigame
 
     public void draw(SpriteBatch b)
     {
-        // Draw Timer
-        b.Draw(Game1.staminaRect, new Rectangle(0, 0, Game1.viewport.Width, 64), Color.Black * 0.5f);
-        b.DrawString(Game1.dialogueFont, gameTimer.ToString(), TimerDrawPos, Color.White);
-
         // Draw Haggling
         haggling?.Draw(b);
     }
@@ -136,7 +131,6 @@ public sealed class ShopkeepGame : IMinigame
     public bool tick(GameTime time)
     {
         // general updates
-        gameTimer += time.ElapsedGameTime;
         if (Game1.activeClickableMenu != null)
         {
             Game1.PushUIMode();

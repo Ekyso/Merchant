@@ -36,7 +36,7 @@ public sealed class MerchantProgressData
 
     public static MerchantProgressData Read()
     {
-        string key = $"merchant-{Game1.player.slotName}";
+        string key = $"progress-{Game1.uniqueIDForThisGame}-{Game1.player.UniqueMultiplayerID}";
         ModEntry.Log($"Read progress data '{key}'");
         MerchantProgressData saveData = ModEntry.help.Data.ReadGlobalData<MerchantProgressData>(key) ?? new();
         saveData.key = key;

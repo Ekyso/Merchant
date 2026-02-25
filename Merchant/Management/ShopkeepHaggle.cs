@@ -36,7 +36,6 @@ public sealed record ShopkeepHaggle(
         };
 
         ShopkeepHaggle newHaggle = new(player, buyer, forSaleTarget, minMult, maxMult, PatternFn);
-        newHaggle.PickedMult = Utility.Lerp(newHaggle.MinMult, newHaggle.MaxMult, newHaggle.targetPointer);
         newHaggle.SetNextDialogue(CxDialogueKind.Haggle_Ask, true);
         newHaggle.CalculateBounds();
         return newHaggle;
@@ -90,7 +89,7 @@ public sealed record ShopkeepHaggle(
     private void SetNextDialogue(CxDialogueKind kind, bool transitioning = false)
     {
         Game1.activeClickableMenu = new DialogueBox(
-            Buyer.GetMerchantDialogue(dummySpeaker, kind, ForSale.Thing.DisplayName, PickedPrice)
+            Buyer.GetMerchantDialogue(dummySpeaker, kind, ForSale.Thing.DisplayName, Math.Ceiling(basePrice * Utility.Lerp(MinMult, MaxMult, targetPointer)))
         )
         {
             showTyping = false,
