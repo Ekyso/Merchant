@@ -5,8 +5,6 @@ using Merchant.Models;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
-using StardewValley.BellsAndWhistles;
-using StardewValley.GameData;
 using StardewValley.Locations;
 using StardewValley.Objects;
 
@@ -59,7 +57,7 @@ public sealed record ShopBonusStats(int StandingDecorCount, int TableCount, int 
     public readonly float StandingDecorBonusRaw = (float)StandingDecorCount / TableCount;
     public readonly float FloorCoverageBonusRaw = FloorDecorCount / (float)MapTileCount;
     public readonly float TotalBonus =
-        MathF.Min(1f, 0.5f * (StandingDecorCount / (float)TableCount))
+        MathF.Min(0.5f, 1.0f * (StandingDecorCount / (float)TableCount))
         + MathF.Min(0.5f, FloorDecorCount / (float)MapTileCount);
 
     public string FormatSummary()
@@ -76,7 +74,7 @@ public sealed record ShopBonusStats(int StandingDecorCount, int TableCount, int 
                 StandingDecorCount,
                 TableCount,
                 $"{StandingDecorBonusRaw:P2}",
-                StandingDecorBonusRaw >= 2f ? I18n.Bonus_Capped() : ""
+                StandingDecorBonusRaw >= 1f ? I18n.Bonus_Capped() : ""
             )
         );
         sb.Append("  ^");
@@ -159,26 +157,9 @@ public sealed record ShopkeepBrowsing(
         List<ForSaleTarget> forSaleTables = [];
         foreach (Furniture furniture in location.furniture)
         {
-            if (furniture.heldObject.Value != null)
+            if (furniture.IsTable() && furniture.heldObject.Value != null)
             {
-                List<(Point, int)> browseAround = FormBrowseAround(furniture, reachableTiles).ToList();
-                if (!browseAround.Any())
-                    continue;
-
-                if (furniture.heldObject.Value is Chest chest)
-                {
-                    foreach (Item item in chest.Items)
-                    {
-                        if (item != null && item.sellToStorePrice(player.UniqueMultiplayerID) > 0)
-                        {
-                            forSaleTables.Add(new(item, furniture, browseAround, true));
-                        }
-                    }
-                }
-                else if (furniture.heldObject.Value.sellToStorePrice(player.UniqueMultiplayerID) > 0)
-                {
-                    forSaleTables.Add(new(furniture.heldObject.Value, furniture, browseAround, false));
-                }
+                AddForSaleTable(player, reachableTiles, forSaleTables, furniture);
             }
             else if (furniture.furniture_type.Value == 12)
             {
@@ -186,7 +167,7 @@ public sealed record ShopkeepBrowsing(
             }
             else
             {
-                standingDecorCount += furniture.getTilesHigh() * furniture.getTilesWide();
+                standingDecorCount++;
             }
         }
         if (forSaleTables.Count == 0)
@@ -195,7 +176,6 @@ public sealed record ShopkeepBrowsing(
             return false;
         }
 
-        standingDecorCount += Math.Max(location.objects.Count() - 1, 0);
         floorDecorCount += location.terrainFeatures.Count();
 
         // customers
@@ -209,6 +189,34 @@ public sealed record ShopkeepBrowsing(
 
         browsing = new(location, player, entryPoint, reachableTiles, customerActors, forSaleTables, bonusStats);
         return true;
+    }
+
+    public static void AddForSaleTable(
+        Farmer player,
+        List<Point> reachableTiles,
+        List<ForSaleTarget> forSaleTables,
+        Furniture furniture
+    )
+    {
+        List<(Point, int)> browseAround = FormBrowseAround(furniture, reachableTiles).ToList();
+        if (!browseAround.Any())
+            return;
+
+        if (furniture.heldObject.Value is Chest chest)
+        {
+            // FF branch
+            foreach (Item item in chest.Items)
+            {
+                if (item != null && item.sellToStorePrice(player.UniqueMultiplayerID) > 0)
+                {
+                    forSaleTables.Add(new(item, furniture, browseAround, true));
+                }
+            }
+        }
+        else if (furniture.heldObject.Value.sellToStorePrice(player.UniqueMultiplayerID) > 0)
+        {
+            forSaleTables.Add(new(furniture.heldObject.Value, furniture, browseAround, false));
+        }
     }
 
     private static IEnumerable<(Point, int)> FormBrowseAround(Furniture furniture, List<Point> reachable)
@@ -343,7 +351,7 @@ public sealed record ShopkeepBrowsing(
         {
             return;
         }
-        ModEntry.Log($"AddNewCustomer: {nextActor.displayName} ({nextActor.Name})");
+        ModEntry.Log($"AddNewCustomer: {nextActor.Name}");
         dispatchedActors.Add(nextActor);
         nextActor.currentLocation = Location;
         nextActor.setTileLocation(EntryPoint.ToVector2());

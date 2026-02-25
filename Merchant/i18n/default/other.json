@@ -7,6 +7,7 @@
   "fail-reason.is-farm-house": "You can't open a shop in your house!",
   "fail-reason.not-farm-building": "You can only open a shop in your own farm buildings.",
   "fail-reason.no-items-for-sale": "Put out some items on tables for sale, and make sure the customers can get to them.",
+  "fail-reason.too-tired": "You are too tired to do any shopkeeping (not enough energy).",
   "menu.prompt": "Shopkeeping",
   "menu.start-minigame": "Start managing the shop",
   "menu.check-bonus": "Check shop decor bonuses",
@@ -17,5 +18,8 @@
   "bonus.rug-floor.values": "{{decor}} covered tiles / {{tiles}} reachable tiles ({{percent}}{{capped}})",
   "bonus.capped": " =",
   "bonus.total": "Total: {{multBonus}}",
-  "quit-confirm": "Close up the shop early?"
+  "quit-confirm": "Close up the shop early?",
+  // config menu
+  "config.auto-restock.name": "Enable Auto-Restock",
+  "config.auto-restock.desc": "When auto restock is enabled and there are chests in the shop location, items inside will be automatically placed onto empty tables when you close the shop."
 }

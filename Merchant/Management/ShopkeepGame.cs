@@ -1,14 +1,14 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
-using StardewValley.BellsAndWhistles;
 using StardewValley.GameData;
+using StardewValley.Inventories;
 using StardewValley.Menus;
 using StardewValley.Minigames;
+using StardewValley.Objects;
 
 namespace Merchant.Management;
 
@@ -84,6 +84,7 @@ public sealed class ShopkeepGame : IMinigame
         Game1.currentMinigame = shopkeepGame;
         Game1.changeMusicTrack("event2", false, MusicContext.MiniGame);
         player.completelyStopAnimatingOrDoingAction();
+        player.Stamina -= 20;
         return shopkeepGame;
     }
 
@@ -91,6 +92,8 @@ public sealed class ShopkeepGame : IMinigame
     {
         ModEntry.LogDebug("ShopkeepGame.unload");
         browsing.FinalizeAndCleanup();
+        if (ModEntry.config.EnableAutoRestock)
+            AutoRestockEmptyTables();
         haggling = null;
         ModEntry.help.Events.Display.Rendering -= OnRendering;
         ModEntry.help.Events.Display.Rendered -= OnRendered;
@@ -182,10 +185,72 @@ public sealed class ShopkeepGame : IMinigame
         }
         if (browsing.Update(time, ref haggling))
         {
-            Game1.stopMusicTrack(MusicContext.MiniGame);
-            Game1.changeMusicTrack("harveys_theme_jazz", false, MusicContext.MiniGame);
+            PrepareToEnterReportState();
             state.SetNext(GameLoopState.Report, 1000);
             return;
+        }
+    }
+
+    private void PrepareToEnterReportState()
+    {
+        Game1.stopMusicTrack(MusicContext.MiniGame);
+        Game1.changeMusicTrack("harveys_theme_jazz", false, MusicContext.MiniGame);
+    }
+
+    private void AutoRestockEmptyTables()
+    {
+        Queue<Furniture> tableQueue = [];
+        foreach (Furniture furniture in location.furniture)
+        {
+            if (furniture.IsTable())
+            {
+                tableQueue.Enqueue(furniture);
+            }
+        }
+        if (tableQueue.Count == 0)
+            return;
+        Furniture testTable = ItemRegistry.Create<Furniture>("(F)DesertTable");
+        testTable.Location = location;
+        foreach (SObject obj in location.objects.Values)
+        {
+            if (obj is not Chest chest)
+            {
+                continue;
+            }
+            for (int i = 0; i < chest.Items.Count; i++)
+            {
+                Item item = chest.Items[i];
+                if (item == null)
+                    continue;
+                if (!testTable.performObjectDropInAction(item, true, null))
+                    continue;
+                if (item.sellToStorePrice(player.UniqueMultiplayerID) <= 0)
+                    continue;
+
+                int consumed = 0;
+                for (int j = 0; j < item.Stack; j++)
+                {
+                    Furniture table = tableQueue.Peek();
+                    while (!table.performObjectDropInAction(item, true, player))
+                    {
+                        tableQueue.Dequeue();
+                        if (tableQueue.Count == 0)
+                            goto consume_stack;
+                        table = tableQueue.Peek();
+                    }
+                    ModEntry.Log(
+                        $"Restocked '{table.QualifiedItemId} ({table.TileLocation})' with '{item.QualifiedItemId}'"
+                    );
+                    table.performObjectDropInAction(item, false, null);
+                    consumed++;
+                }
+
+                consume_stack:
+                chest.Items[i] = item.ConsumeStack(consumed);
+                if (tableQueue.Count == 0)
+                    return;
+            }
+            chest.Items.RemoveEmptySlots();
         }
     }
     #endregion

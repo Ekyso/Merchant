@@ -34,6 +34,11 @@ public static class GameDelegates
                 switch (response)
                 {
                     case "merchant_startgame":
+                        if (player.Stamina < 20)
+                        {
+                            Game1.drawObjectDialogue(I18n.FailReason_TooTired());
+                            return;
+                        }
                         ShopkeepGame.StartMinigame(location, player, browsing);
                         break;
                     case "merchant_checkbonus":

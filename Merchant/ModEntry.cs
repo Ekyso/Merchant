@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Merchant.Management;
 using Merchant.Misc;
 using Merchant.Models;
+using Merchant.ModIntegration;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -18,6 +19,7 @@ public sealed class ModEntry : Mod
 #endif
     public const string ModId = "mushymato.Merchant";
     private static IMonitor? mon;
+    internal static ModConfig config = null!;
     internal static IModHelper help = null!;
     internal static MerchantProgressData? ProgressData { get; private set; } = null;
 
@@ -29,18 +31,30 @@ public sealed class ModEntry : Mod
 
         mon = Monitor;
         help = helper;
-        helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
-        helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
-        helper.Events.GameLoop.Saving += OnSaving;
+        config = help.ReadConfig<ModConfig>();
+        help.Events.GameLoop.GameLaunched += OnGameLaunched;
+        help.Events.GameLoop.SaveLoaded += OnSaveLoaded;
+        help.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
+        help.Events.GameLoop.Saving += OnSaving;
 
         AssetManager.Register();
         GameDelegates.Register();
     }
 
-    private void OnSaving(object? sender, SavingEventArgs e)
+    private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
-        ProgressData?.Write();
-        NPCLookup.Clear();
+        if (
+            Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu")
+            is IGenericModConfigMenuApi gmcm
+        )
+        {
+            config.Register(ModManifest, gmcm);
+        }
+    }
+
+    private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
+    {
+        ProgressData = null;
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -48,9 +62,10 @@ public sealed class ModEntry : Mod
         ProgressData = MerchantProgressData.Read();
     }
 
-    private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
+    private void OnSaving(object? sender, SavingEventArgs e)
     {
-        ProgressData = null;
+        ProgressData?.Write();
+        NPCLookup.Clear();
     }
 
     /// <summary>SMAPI static monitor Log wrapper</summary>

@@ -16,11 +16,14 @@ public sealed record ShopkeepHaggle(
     Func<float, float> PatternFn
 )
 {
+    public const float MIN_MULT = 0.8f;
+    public const float MAX_MULT_DELTA = 1f;
+
     #region make
     public static ShopkeepHaggle Make(Farmer player, CustomerActor buyer, ForSaleTarget forSaleTarget, float decorBonus)
     {
-        float minMult = 0.8f + decorBonus;
-        float maxMult = minMult + 1f;
+        float minMult = MIN_MULT + decorBonus;
+        float maxMult = minMult + MAX_MULT_DELTA;
 
         ModEntry.LogDebug($"Haggle Mult: {minMult} -> {maxMult}");
 
@@ -33,6 +36,7 @@ public sealed record ShopkeepHaggle(
         };
 
         ShopkeepHaggle newHaggle = new(player, buyer, forSaleTarget, minMult, maxMult, PatternFn);
+        newHaggle.PickedMult = Utility.Lerp(newHaggle.MinMult, newHaggle.MaxMult, newHaggle.targetPointer);
         newHaggle.SetNextDialogue(CxDialogueKind.Haggle_Ask, true);
         newHaggle.CalculateBounds();
         return newHaggle;
@@ -77,17 +81,8 @@ public sealed record ShopkeepHaggle(
     private float targetOverRange = 0.25f * Random.Shared.NextSingle() + Buyer.GetHaggleTargetOverRange();
     private float nextTargetPointer = -1;
     private readonly uint basePrice = (uint)Math.Max(ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID), 1);
-    public float PickedMult
-    {
-        get => field;
-        private set
-        {
-            field = value;
-            if (value >= 0)
-                PickedPrice = (uint)Math.Ceiling(basePrice * PickedMult);
-        }
-    } = MinMult;
-    public uint PickedPrice { get; private set; } = (uint)ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID);
+    public float PickedMult { get; private set; } = MinMult;
+    public uint PickedPrice => (uint)Math.Ceiling(basePrice * PickedMult);
 
     private int pointerPitch = -1;
     private ICue? pointerSound;

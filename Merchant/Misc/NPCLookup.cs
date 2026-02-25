@@ -11,9 +11,13 @@ public record FriendEntry(NPC Npc, Friendship Fren, int MaxHeartCount)
     public float FrenPercent => Fren.Points / (float)(OneHeart * MaxHeartCount);
     public bool IsMaxedHeart => Fren.Points == OneHeart * MaxHeartCount;
 
-    public bool CheckCondition(GameStateQueryContext context)
+    public bool WillComeToShop(GameStateQueryContext context)
     {
-        if (CxData?.Condition == null)
+        if (CxData == null)
+            return true;
+        if ((context.Random ?? Random.Shared).NextSingle() > CxData.Chance)
+            return false;
+        if (CxData.Condition == null)
             return true;
         return GameStateQuery.CheckConditions(CxData.Condition, context);
     }
@@ -83,7 +87,7 @@ internal static class NPCLookup
             )
             {
                 FriendEntry friendEntry = new(npc, friendship, Utility.GetMaximumHeartsForCharacter(npc));
-                if (friendEntry.CheckCondition(context))
+                if (friendEntry.WillComeToShop(context))
                     newSortedList.Add(friendEntry);
             }
             return true;
