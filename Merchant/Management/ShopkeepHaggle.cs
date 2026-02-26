@@ -89,7 +89,12 @@ public sealed record ShopkeepHaggle(
     private void SetNextDialogue(CxDialogueKind kind, bool transitioning = false)
     {
         Game1.activeClickableMenu = new DialogueBox(
-            Buyer.GetMerchantDialogue(dummySpeaker, kind, ForSale.Thing.DisplayName, Math.Ceiling(basePrice * Utility.Lerp(MinMult, MaxMult, targetPointer)))
+            Buyer.GetMerchantDialogue(
+                dummySpeaker,
+                kind,
+                ForSale.Thing.DisplayName,
+                Math.Ceiling(basePrice * Utility.Lerp(MinMult, MaxMult, targetPointer))
+            )
         )
         {
             showTyping = false,

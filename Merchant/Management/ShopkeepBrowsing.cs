@@ -3,6 +3,7 @@ using System.Text;
 using Merchant.Misc;
 using Merchant.Models;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Locations;
@@ -10,7 +11,13 @@ using StardewValley.Objects;
 
 namespace Merchant.Management;
 
-public record ForSaleTarget(Item Thing, Furniture Table, List<(Point, int)> BrowseAround, bool FromHeldChest)
+public record ForSaleTarget(
+    Item Thing,
+    Furniture Table,
+    List<(Point, int)> BrowseAround,
+    bool FromHeldChest = false,
+    int Idx = -1
+)
 {
     public CustomerActor? HeldBy { get; set; } = null;
     public SoldRecord? Sold
@@ -49,48 +56,6 @@ public record ForSaleTarget(Item Thing, Furniture Table, List<(Point, int)> Brow
                 }
             }
         }
-    }
-}
-
-public sealed record ShopBonusStats(int StandingDecorCount, int TableCount, int FloorDecorCount, int MapTileCount)
-{
-    public readonly float StandingDecorBonusRaw = (float)StandingDecorCount / TableCount;
-    public readonly float FloorCoverageBonusRaw = FloorDecorCount / (float)MapTileCount;
-    public readonly float TotalBonus =
-        MathF.Min(0.5f, 1.0f * (StandingDecorCount / (float)TableCount))
-        + MathF.Min(0.5f, FloorDecorCount / (float)MapTileCount);
-
-    public string FormatSummary()
-    {
-        StringBuilder sb = new();
-        sb.Append(I18n.Bonus_Title());
-        sb.Append("  ^");
-        sb.Append("----------------------------------------");
-        sb.Append("  ^");
-        sb.Append(I18n.Bonus_Decor());
-        sb.Append("  ^  ");
-        sb.Append(
-            I18n.Bonus_Decor_Values(
-                StandingDecorCount,
-                TableCount,
-                $"{StandingDecorBonusRaw:P2}",
-                StandingDecorBonusRaw >= 1f ? I18n.Bonus_Capped() : ""
-            )
-        );
-        sb.Append("  ^");
-        sb.Append(I18n.Bonus_RugFloor());
-        sb.Append("  ^  ");
-        sb.Append(
-            I18n.Bonus_RugFloor_Values(
-                FloorDecorCount,
-                MapTileCount,
-                $"{FloorCoverageBonusRaw:P2}",
-                StandingDecorBonusRaw >= 0.5f ? I18n.Bonus_Capped() : ""
-            )
-        );
-        sb.Append("  ^");
-        sb.Append(I18n.Bonus_Total($"{TotalBonus:P2}"));
-        return sb.ToString();
     }
 }
 
@@ -205,17 +170,18 @@ public sealed record ShopkeepBrowsing(
         if (furniture.heldObject.Value is Chest chest)
         {
             // FF branch
-            foreach (Item item in chest.Items)
+            for (int i = 0; i < chest.Items.Count; i++)
             {
+                Item item = chest.Items[i];
                 if (item != null && item.sellToStorePrice(player.UniqueMultiplayerID) > 0)
                 {
-                    forSaleTables.Add(new(item, furniture, browseAround, true));
+                    forSaleTables.Add(new(item, furniture, browseAround, true, i));
                 }
             }
         }
         else if (furniture.heldObject.Value.sellToStorePrice(player.UniqueMultiplayerID) > 0)
         {
-            forSaleTables.Add(new(furniture.heldObject.Value, furniture, browseAround, false));
+            forSaleTables.Add(new(furniture.heldObject.Value, furniture, browseAround));
         }
     }
 
@@ -256,6 +222,7 @@ public sealed record ShopkeepBrowsing(
                 yield return new(pnt, 3);
         }
     }
+
     #endregion
 
     #region browsing loop
@@ -335,6 +302,7 @@ public sealed record ShopkeepBrowsing(
 
         foreach (CustomerActor actor in dispatchedActors)
         {
+            actor.update(time, Location);
             actor.UpdateBuyTarget(availableForSale, availableForSaleHeld, out ForSaleTarget? hagglingForSaleTarget);
             if (haggling == null && hagglingForSaleTarget != null)
             {
@@ -355,7 +323,6 @@ public sealed record ShopkeepBrowsing(
         dispatchedActors.Add(nextActor);
         nextActor.currentLocation = Location;
         nextActor.setTileLocation(EntryPoint.ToVector2());
-        Location.characters.Add(nextActor);
         Game1.playSound(AssetManager.DoorbellCue, 1100 + (int)(300 * Random.Shared.NextSingle()));
     }
 
@@ -391,7 +358,32 @@ public sealed record ShopkeepBrowsing(
 
         waitingActors.Clear();
         dispatchedActors.Clear();
-        Location.characters.RemoveWhere(actor => actor is CustomerActor);
+    }
+    #endregion
+
+    #region draw
+    public void DrawShadows(SpriteBatch b)
+    {
+        foreach (CustomerActor actor in dispatchedActors)
+        {
+            actor.DrawShadow(b);
+        }
+    }
+
+    public void DrawCharacters(SpriteBatch b)
+    {
+        foreach (CustomerActor actor in dispatchedActors)
+        {
+            actor.draw(b);
+        }
+    }
+
+    public void DrawCharacterEmotes(SpriteBatch b)
+    {
+        foreach (CustomerActor actor in dispatchedActors)
+        {
+            actor.DrawEmote(b);
+        }
     }
     #endregion
 }

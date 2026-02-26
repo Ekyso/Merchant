@@ -5,6 +5,7 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.GameData;
+using StardewValley.GameData.Buildings;
 using StardewValley.Inventories;
 using StardewValley.Menus;
 using StardewValley.Minigames;
@@ -65,26 +66,64 @@ public sealed class ShopkeepGame : IMinigame
         }
     }
 
+    private void OnRenderedStep(object? sender, RenderedStepEventArgs e)
+    {
+        switch (e.Step)
+        {
+            case StardewValley.Mods.RenderSteps.World_Background:
+                browsing.DrawShadows(e.SpriteBatch);
+                break;
+            case StardewValley.Mods.RenderSteps.World_Sorted:
+                browsing.DrawCharacters(e.SpriteBatch);
+                break;
+            case StardewValley.Mods.RenderSteps.World_AlwaysFront:
+                browsing.DrawCharacterEmotes(e.SpriteBatch);
+                break;
+        }
+    }
+
     public static ShopkeepGame? StartMinigame(GameLocation? location, Farmer? player, ShopkeepBrowsing browsing)
     {
-        if (location == null || player == null)
+        if (location == null || player == null || Game1.CurrentEvent != null)
         {
             ModEntry.Log(
-                $"Failed to start {nameof(ShopkeepGame)}: {location?.NameOrUniqueName ?? "NULL-LOCATION"} {player?.Name ?? "NULL-PLAYER"}",
+                $"Failed to start {nameof(ShopkeepGame)}: {location?.NameOrUniqueName ?? "NULL-LOCATION"} {player?.Name ?? "NULL-PLAYER"} EVENT:{Game1.CurrentEvent}",
                 LogLevel.Error
             );
             return null;
         }
+        if (player.Stamina < 25)
+        {
+            Game1.drawObjectDialogue(I18n.FailReason_TooTired());
+            return null;
+        }
+        if (location.farmers.Count > 1)
+        {
+            Game1.drawObjectDialogue(I18n.FailReason_OtherFarmer());
+            return null;
+        }
         ShopkeepGame shopkeepGame = new(location, player, browsing);
-        ModEntry.help.Events.Display.Rendering += shopkeepGame.OnRendering;
-        ModEntry.help.Events.Display.Rendered += shopkeepGame.OnRendered;
+        shopkeepGame.PostCreateSetup(player);
+        return shopkeepGame;
+    }
+
+    private void PostCreateSetup(Farmer player)
+    {
+        ModEntry.help.Events.Display.Rendering += OnRendering;
+        ModEntry.help.Events.Display.RenderedStep += OnRenderedStep;
+        ModEntry.help.Events.Display.Rendered += OnRendered;
+
         Game1.activeClickableMenu = null;
         Game1.displayHUD = false;
-        Game1.currentMinigame = shopkeepGame;
+        Game1.currentMinigame = this;
         Game1.changeMusicTrack("event2", false, MusicContext.MiniGame);
+
+        // ban other players from entering (hopefully)
+        location.ParentBuilding.humanDoor.X = -1;
+        location.ParentBuilding.humanDoor.Y = -1;
+
         player.completelyStopAnimatingOrDoingAction();
         player.Stamina -= 20;
-        return shopkeepGame;
     }
 
     public void unload()
@@ -94,11 +133,18 @@ public sealed class ShopkeepGame : IMinigame
         if (ModEntry.config.EnableAutoRestock)
             AutoRestockEmptyTables();
         haggling = null;
+
         ModEntry.help.Events.Display.Rendering -= OnRendering;
+        ModEntry.help.Events.Display.RenderedStep -= OnRenderedStep;
         ModEntry.help.Events.Display.Rendered -= OnRendered;
-        Game1.stopMusicTrack(MusicContext.MiniGame);
+
         Game1.activeClickableMenu = null;
         Game1.displayHUD = true;
+        Game1.stopMusicTrack(MusicContext.MiniGame);
+
+        BuildingData? buildingData = location.ParentBuilding.GetData();
+        location.ParentBuilding.humanDoor.X = buildingData.HumanDoor.X;
+        location.ParentBuilding.humanDoor.Y = buildingData.HumanDoor.Y;
     }
 
     public bool forceQuit()
@@ -120,8 +166,6 @@ public sealed class ShopkeepGame : IMinigame
     #endregion
 
     #region gameloop
-    private static readonly Vector2 TimerDrawPos = Vector2.One * 12f;
-
     public void draw(SpriteBatch b)
     {
         // Draw Haggling
@@ -239,7 +283,7 @@ public sealed class ShopkeepGame : IMinigame
                     consumed++;
                 }
 
-                consume_stack:
+            consume_stack:
                 chest.Items[i] = item.ConsumeStack(consumed);
                 if (tableQueue.Count == 0)
                     return;

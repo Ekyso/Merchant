@@ -18,6 +18,7 @@ public enum CxDialogueKind
 
 public sealed class CustomerActor : NPC
 {
+    internal static readonly Event BogusEvent = new();
     #region make
     private readonly Point entryPoint;
     internal readonly FriendEntry sourceFriend;
@@ -257,12 +258,23 @@ public sealed class CustomerActor : NPC
         ForSale = null;
         cachedGiftTastes.Clear();
         state.Current = ActorState.Finished;
-        location.characters.Remove(this);
     }
 
     public override void update(GameTime time, GameLocation location)
     {
         base.update(time, location);
+        // controller updates from vanilla
+        if (!Game1.IsMasterGame)
+        {
+            if (controller == null && !freezeMotion)
+            {
+                updateMovement(location, time);
+            }
+            if (controller != null && !freezeMotion && controller.update(time))
+            {
+                controller = null;
+            }
+        }
         state.Update(time);
         if (state.Current == ActorState.Leaving && TilePoint == entryPoint)
         {
