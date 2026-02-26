@@ -1,3 +1,4 @@
+using Merchant.Misc;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -6,7 +7,6 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.GameData;
 using StardewValley.GameData.Buildings;
-using StardewValley.Inventories;
 using StardewValley.Menus;
 using StardewValley.Minigames;
 using StardewValley.Objects;
@@ -17,6 +17,8 @@ public sealed class ShopkeepGame : IMinigame
 {
     private readonly GameLocation location;
     private readonly Farmer player;
+    private readonly Point tileAboveCashRegister;
+    private readonly (Point, int) playerPreviousPosition;
 
     #region state
 
@@ -41,11 +43,13 @@ public sealed class ShopkeepGame : IMinigame
     #endregion
 
     #region setup teardown
-    private ShopkeepGame(GameLocation location, Farmer player, ShopkeepBrowsing browsing)
+    private ShopkeepGame(GameLocation location, Farmer player, ShopkeepBrowsing browsing, Point tileAboveCashRegister)
     {
         this.location = location;
         this.player = player;
         this.browsing = browsing;
+        this.tileAboveCashRegister = tileAboveCashRegister;
+        this.playerPreviousPosition = (player.TilePoint, player.FacingDirection);
         changeScreenSize();
     }
 
@@ -82,7 +86,12 @@ public sealed class ShopkeepGame : IMinigame
         }
     }
 
-    public static ShopkeepGame? StartMinigame(GameLocation? location, Farmer? player, ShopkeepBrowsing browsing)
+    public static ShopkeepGame? StartMinigame(
+        GameLocation? location,
+        Farmer? player,
+        Point cashRegisterPoint,
+        ShopkeepBrowsing browsing
+    )
     {
         if (location == null || player == null || Game1.CurrentEvent != null)
         {
@@ -102,12 +111,18 @@ public sealed class ShopkeepGame : IMinigame
             Game1.drawObjectDialogue(I18n.FailReason_OtherFarmer());
             return null;
         }
-        ShopkeepGame shopkeepGame = new(location, player, browsing);
-        shopkeepGame.PostCreateSetup(player);
+        Point tileAboveCashRegister = new(cashRegisterPoint.X, cashRegisterPoint.Y - 1);
+        if (!Topology.IsTileStandable(location, tileAboveCashRegister, CollisionMask.All))
+        {
+            Game1.drawObjectDialogue(I18n.FailReason_TilePosition());
+            return null;
+        }
+        ShopkeepGame shopkeepGame = new(location, player, browsing, tileAboveCashRegister);
+        shopkeepGame.PostCreateSetup();
         return shopkeepGame;
     }
 
-    private void PostCreateSetup(Farmer player)
+    private void PostCreateSetup()
     {
         ModEntry.help.Events.Display.Rendering += OnRendering;
         ModEntry.help.Events.Display.RenderedStep += OnRenderedStep;
@@ -119,11 +134,17 @@ public sealed class ShopkeepGame : IMinigame
         Game1.changeMusicTrack("event2", false, MusicContext.MiniGame);
 
         // ban other players from entering (hopefully)
-        location.ParentBuilding.humanDoor.X = -1;
-        location.ParentBuilding.humanDoor.Y = -1;
+        if (location.ParentBuilding.GetData() is BuildingData buildingData)
+        {
+            location.ParentBuilding.humanDoor.X = -1;
+            location.ParentBuilding.humanDoor.Y = -1;
+        }
 
         player.completelyStopAnimatingOrDoingAction();
         player.Stamina -= 20;
+
+        player.setTileLocation(tileAboveCashRegister.ToVector2());
+        player.faceDirection(2);
     }
 
     public void unload()
@@ -142,9 +163,15 @@ public sealed class ShopkeepGame : IMinigame
         Game1.displayHUD = true;
         Game1.stopMusicTrack(MusicContext.MiniGame);
 
-        BuildingData? buildingData = location.ParentBuilding.GetData();
-        location.ParentBuilding.humanDoor.X = buildingData.HumanDoor.X;
-        location.ParentBuilding.humanDoor.Y = buildingData.HumanDoor.Y;
+        if (location.ParentBuilding.GetData() is BuildingData buildingData)
+        {
+            location.ParentBuilding.humanDoor.X = buildingData.HumanDoor.X;
+            location.ParentBuilding.humanDoor.Y = buildingData.HumanDoor.Y;
+            // TODO: maybe abuse _actionTiles to display message?
+        }
+
+        player.setTileLocation(playerPreviousPosition.Item1.ToVector2());
+        player.faceDirection(playerPreviousPosition.Item2);
     }
 
     public bool forceQuit()

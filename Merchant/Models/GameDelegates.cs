@@ -15,7 +15,7 @@ public static class GameDelegates
         GameLocation.RegisterTileAction(TileAction_CashRegister, TileActionCashRegister);
     }
 
-    public static bool ShowMerchantMenu(GameLocation location, Farmer player)
+    public static bool ShowMerchantMenu(GameLocation location, Farmer player, Point cashRegisterPoint)
     {
         if (!ShopkeepBrowsing.TryMake(location, player, out ShopkeepBrowsing? browsing, out string? failReason))
         {
@@ -34,7 +34,7 @@ public static class GameDelegates
                 switch (response)
                 {
                     case "merchant_startgame":
-                        ShopkeepGame.StartMinigame(location, player, browsing);
+                        ShopkeepGame.StartMinigame(location, player, cashRegisterPoint, browsing);
                         break;
                     case "merchant_checkbonus":
                         Game1.drawDialogueNoTyping(browsing.ShopBonus.FormatSummary());
@@ -47,8 +47,8 @@ public static class GameDelegates
     }
 
     private static bool TileActionCashRegister(GameLocation location, string[] args, Farmer player, Point point) =>
-        ShowMerchantMenu(location, player);
+        ShowMerchantMenu(location, player, point);
 
-    public static bool InteractCashRegister(SObject _, GameLocation location, Farmer player) =>
-        ShowMerchantMenu(location, player);
+    public static bool InteractCashRegister(SObject machine, GameLocation location, Farmer player) =>
+        ShowMerchantMenu(location, player, machine.TileLocation.ToPoint());
 }

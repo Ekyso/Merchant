@@ -16,7 +16,7 @@ public sealed record ShopkeepHaggle(
     Func<float, float> PatternFn
 )
 {
-    public const float MIN_MULT = 0.8f;
+    public const float MIN_MULT = 0.5f;
     public const float MAX_MULT_DELTA = 1f;
 
     #region make
@@ -36,7 +36,7 @@ public sealed record ShopkeepHaggle(
         };
 
         ShopkeepHaggle newHaggle = new(player, buyer, forSaleTarget, minMult, maxMult, PatternFn);
-        newHaggle.SetNextDialogue(CxDialogueKind.Haggle_Ask, true);
+        newHaggle.SetNextDialogue(CxDialogueKind.Haggle_Ask, newHaggle.PntToPrice(newHaggle.targetPointer));
         newHaggle.CalculateBounds();
         return newHaggle;
     }
@@ -80,21 +80,16 @@ public sealed record ShopkeepHaggle(
     private float targetOverRange = 0.25f * Random.Shared.NextSingle() + Buyer.GetHaggleTargetOverRange();
     private float nextTargetPointer = -1;
     private readonly uint basePrice = (uint)Math.Max(ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID), 1);
-    public float PickedMult { get; private set; } = MinMult;
-    public uint PickedPrice => (uint)Math.Ceiling(basePrice * PickedMult);
+
+    public uint PntToPrice(float pnt) => (uint)Math.Ceiling(Utility.Lerp(MinMult, MaxMult, pnt) * basePrice);
 
     private int pointerPitch = -1;
     private ICue? pointerSound;
 
-    private void SetNextDialogue(CxDialogueKind kind, bool transitioning = false)
+    private void SetNextDialogue(CxDialogueKind kind, uint price, bool transitioning = false)
     {
         Game1.activeClickableMenu = new DialogueBox(
-            Buyer.GetMerchantDialogue(
-                dummySpeaker,
-                kind,
-                ForSale.Thing.DisplayName,
-                Math.Ceiling(basePrice * Utility.Lerp(MinMult, MaxMult, targetPointer))
-            )
+            Buyer.GetMerchantDialogue(dummySpeaker, kind, ForSale.Thing.DisplayName, price)
         )
         {
             showTyping = false,
@@ -108,7 +103,7 @@ public sealed record ShopkeepHaggle(
         if (HaggleExpired())
         {
             state.Current = HaggleState.Picked;
-            SetupHaggleFailed();
+            SetupHaggleFailed(PntToPrice(targetPointer));
             return;
         }
         if (nextTargetPointer > -1)
@@ -119,7 +114,7 @@ public sealed record ShopkeepHaggle(
         }
 
         if (Tries > 0)
-            SetNextDialogue(CxDialogueKind.Haggle_Ask, false);
+            SetNextDialogue(CxDialogueKind.Haggle_Ask, PntToPrice(targetPointer));
         pointer = 0f;
         pointerPitch = -1;
         state.Current = HaggleState.Increase;
@@ -181,49 +176,63 @@ public sealed record ShopkeepHaggle(
     public void Pick()
     {
         state.Current = HaggleState.Picked;
-        ModEntry.Log($"Pick: pointer {pointer} target {targetPointer} over {targetOverRange}");
-        PickedMult = Utility.Lerp(MinMult, MaxMult, pointer);
-        if (pointer <= targetPointer)
+        uint pickedPrice = PntToPrice(pointer);
+        uint targetPrice = PntToPrice(targetPointer);
+        ModEntry.Log($"Pick: {pointer}({pickedPrice}) vs {targetPointer}({targetPrice})");
+
+        if (pickedPrice <= targetPrice)
         {
-            state.SetNext(HaggleState.Done, pickedPauseMS);
-            ForSale.Sold = new(Buyer.Name, ForSale.Thing.QualifiedItemId, PickedPrice);
-            Game1.playSound("reward");
-            SetNextDialogue(CxDialogueKind.Haggle_Success);
+            SetupHaggleSuccess(pickedPrice);
         }
         else if (HaggleExpired())
         {
-            SetupHaggleFailed();
+            SetupHaggleFailed(pickedPrice);
         }
         else
         {
-            Game1.playSound("smallSelect");
             float delta = pointer - targetPointer;
-            if (pointer - targetPointer <= targetOverRange)
+            if (delta <= targetOverRange)
             {
-                nextTargetPointer =
-                    MathF.Ceiling((targetPointer + delta * Random.Shared.NextSingle()) * basePrice) / basePrice;
-                targetOverRange -= nextTargetPointer - targetPointer;
+                nextTargetPointer = targetPointer + delta * Random.Shared.NextSingle();
+                if (PntToPrice(nextTargetPointer) >= pickedPrice)
+                {
+                    SetupHaggleSuccess(pickedPrice);
+                    return;
+                }
+                else
+                {
+                    targetOverRange -= nextTargetPointer - targetPointer;
+                }
                 state.SetNext(HaggleState.Begin, pickedPauseMS);
-                SetNextDialogue(CxDialogueKind.Haggle_Compromise);
+                SetNextDialogue(CxDialogueKind.Haggle_Compromise, pickedPrice);
             }
             else
             {
                 state.SetNext(HaggleState.Begin, pickedPauseMS);
-                SetNextDialogue(CxDialogueKind.Haggle_Overpriced);
+                SetNextDialogue(CxDialogueKind.Haggle_Overpriced, pickedPrice);
             }
+            Game1.playSound("smallSelect");
         }
+    }
+
+    private void SetupHaggleSuccess(uint pickedPrice)
+    {
+        state.SetNext(HaggleState.Done, pickedPauseMS);
+        ForSale.Sold = new(Buyer.Name, ForSale.Thing.QualifiedItemId, pickedPrice);
+        Game1.playSound("reward");
+        SetNextDialogue(CxDialogueKind.Haggle_Success, pickedPrice);
+    }
+
+    private void SetupHaggleFailed(uint pickedPrice)
+    {
+        state.SetNext(HaggleState.Done, pickedPauseMS);
+        Game1.playSound("fishEscape");
+        SetNextDialogue(CxDialogueKind.Haggle_Fail, pickedPrice);
     }
 
     private void State_DecreaseStart(HaggleState oldState, HaggleState newState)
     {
         state.SetNext(HaggleState.Begin, pickedPauseMS);
-    }
-
-    private void SetupHaggleFailed()
-    {
-        state.SetNext(HaggleState.Done, pickedPauseMS);
-        Game1.playSound("fishEscape");
-        SetNextDialogue(CxDialogueKind.Haggle_Fail);
     }
     #endregion
 
