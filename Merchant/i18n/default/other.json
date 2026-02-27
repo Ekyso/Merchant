@@ -24,5 +24,7 @@
   "quit-confirm": "Close up the shop early?",
   // config menu
   "config.auto-restock.name": "Enable Auto-Restock",
-  "config.auto-restock.desc": "When auto restock is enabled and there are chests in the shop location, items inside will be automatically placed onto empty tables when you close the shop."
+  "config.auto-restock.desc": "When auto restock is enabled and there are chests in the shop location, items inside will be automatically placed onto empty tables when you close the shop.",
+  "config.max-customer-per-session.name": "Max Customers Per Session",
+  "config.max-customer-per-session.desc": "How many customers arrive",
 }

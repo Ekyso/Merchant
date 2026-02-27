@@ -147,7 +147,11 @@ public sealed record ShopkeepBrowsing(
 
         // customers
         List<CustomerActor> customerActors = [];
-        foreach (FriendEntry sourceFriend in NPCLookup.PickCustomerNPCs(player, forSaleTables.Count))
+        int customerCount = Math.Min(
+            32,
+            Math.Min(forSaleTables.Count, 4 + (ModEntry.ProgressData?.Logs.Count ?? 0) / 2)
+        );
+        foreach (FriendEntry sourceFriend in NPCLookup.PickCustomerNPCs(player, customerCount))
         {
             customerActors.Add(new CustomerActor(sourceFriend, entryPoint));
         }
@@ -352,7 +356,7 @@ public sealed record ShopkeepBrowsing(
         dispatchedActors.Clear();
 
         List<SoldRecord> sales = [];
-        StringBuilder sb = new("===== SOLD =====");
+        StringBuilder sb = new("===== SOLD =====\n");
 
         ulong totalEarnings = 0;
         foreach (ForSaleTarget forSale in ForSaleTargets)
@@ -371,20 +375,19 @@ public sealed record ShopkeepBrowsing(
                 {
                     Player.shippedBasic(obj.ItemId, obj.Stack);
                 }
-                sb.Append($"- {forSale.Thing.DisplayName} ({forSale.Sold})");
+                sb.Append($"- {forSale.Thing.DisplayName} ({forSale.Sold})\n");
             }
         }
 
         if (sales.Count <= 0)
             return;
 
-        sb.Insert(0, '\n');
         ModEntry.Log(sb.ToString(), LogLevel.Info);
 
         Player.Money = Player.Money + (int)totalEarnings;
         Game1.dayTimeMoneyBox.gotGoldCoin((int)totalEarnings);
 
-        ModEntry.ProgressData!.SaveShopkeepSession(sales, false, totalEarnings);
+        ModEntry.ProgressData?.SaveShopkeepSession(sales, false, totalEarnings);
     }
     #endregion
 

@@ -17,13 +17,13 @@ public sealed record ShopkeepHaggle(
 )
 {
     public const float MIN_MULT = 0.5f;
-    public const float MAX_MULT_DELTA = 1f;
+    public const float MAX_MULT = 1.5f;
 
     #region make
     public static ShopkeepHaggle Make(Farmer player, CustomerActor buyer, ForSaleTarget forSaleTarget, float decorBonus)
     {
-        float minMult = MIN_MULT + decorBonus;
-        float maxMult = minMult + MAX_MULT_DELTA;
+        float minMult = MIN_MULT + decorBonus / 2f;
+        float maxMult = MAX_MULT + decorBonus;
 
         ModEntry.LogDebug($"Haggle Mult: {minMult} -> {maxMult}");
 
@@ -78,7 +78,7 @@ public sealed record ShopkeepHaggle(
 
     public int Tries { get; private set; } = 0;
     private float targetPointer = Buyer.GetHaggleBaseTargetPointer(ForSale);
-    private float targetOverRange = 0.25f * Random.Shared.NextSingle() + Buyer.GetHaggleTargetOverRange();
+    private float targetOverRange = 0.1f + (0.15f + Buyer.GetHaggleTargetOverRange()) * Random.Shared.NextSingle();
     private float nextTargetPointer = -1;
     private readonly uint basePrice = (uint)Math.Max(ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID), 1);
     private uint leewayPrice = 0;
@@ -269,8 +269,9 @@ public sealed record ShopkeepHaggle(
         haggleBarCapPos = new(haggleBarIconBoxPos.X + haggleBarIconWidth + haggleBarSlideWidth, haggleBarIconBoxPos.Y);
         remainingTriesBounds = new(haggleBarSlideBounds.X, haggleBarSlideBounds.Y - 72, 196, 80);
 
-        leewayPrice = (uint)(basePrice * (float)buyerMugShotRect.Width * 2 / haggleBarSlideWidth * 4);
+        leewayPrice = (uint)Math.Ceiling(basePrice * buyerMugShotRect.Width * 2f / haggleBarSlideWidth);
         leewayPointer = (float)leewayPrice / basePrice;
+        ModEntry.Log($"leewayPrice {leewayPrice}");
 
         CalculateTargetPointerBounds();
     }
@@ -283,7 +284,7 @@ public sealed record ShopkeepHaggle(
                 haggleBarSlideBounds.X + haggleBarSlideWidth,
                 useNextTargetPnt ? Utility.Lerp(nextTargetPointer, targetPointer, state.TimerProgress) : targetPointer
             )
-                + buyerMugShotRect.Width * 2,
+                - buyerMugShotRect.Width * 2,
             haggleBarSlideBounds.Y - 16
         );
     }

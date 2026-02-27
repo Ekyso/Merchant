@@ -72,17 +72,17 @@ public sealed class CustomerActor : NPC
         );
     }
 
-    public float GetFriendshipHaggleBonus()
+    public float GetFriendshipHaggleBase()
     {
         // TODO: custom haggle bonus
         if (sourceFriend.Fren.Points <= 1)
-            return 0.15f;
-        return 0.15f + MathF.Log10(sourceFriend.Fren.Points / 2000f) * 0.25f;
+            return 0.1f;
+        return 0.1f + MathF.Log10(sourceFriend.Fren.Points / 2000f) * 0.3f;
     }
 
     public float GetHaggleBaseTargetPointer(ForSaleTarget forSale)
     {
-        float haggleBaseTarget = GetFriendshipHaggleBonus();
+        float haggleBaseTarget = GetFriendshipHaggleBase();
         int giftTaste = GetGiftTasteForSaleItem(forSale);
         switch (giftTaste)
         {
@@ -94,7 +94,7 @@ public sealed class CustomerActor : NPC
                 haggleBaseTarget += 0.1f;
                 break;
         }
-        return haggleBaseTarget + 0.3f * Random.Shared.NextSingle();
+        return haggleBaseTarget + 0.2f * Random.Shared.NextSingle();
     }
 
     public float GetHaggleTargetOverRange()

@@ -14,8 +14,8 @@ public sealed class ShopkeepSessionLog
 public sealed class MerchantProgressData
 {
     private string key = "merchant";
-    public ulong TotalEarningsManual = 0;
-    public ulong TotalEarningsAuto = 0;
+    internal ulong TotalEarnings = 0;
+    internal uint TotalItemsSold = 0;
     public List<ShopkeepSessionLog> Logs = [];
 
     private void Validate()
@@ -27,10 +27,8 @@ public sealed class MerchantProgressData
             {
                 totalEarnings += sale.Price;
             }
-            if (log.IsAutoShopkeep)
-                TotalEarningsAuto += totalEarnings;
-            else
-                TotalEarningsManual += totalEarnings;
+            if (!log.IsAutoShopkeep)
+                TotalEarnings += totalEarnings;
         }
     }
 
@@ -60,9 +58,7 @@ public sealed class MerchantProgressData
         };
 
         if (isAutoShopkeep)
-            TotalEarningsAuto += totalEarnings;
-        else
-            TotalEarningsManual += totalEarnings;
+            TotalEarnings += totalEarnings;
 
         Logs.Add(newLog);
     }

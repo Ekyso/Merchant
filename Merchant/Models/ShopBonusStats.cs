@@ -14,8 +14,8 @@ public sealed record ShopBonusStats(
     private const float FLOOR_COVERAGE_TARGET = 1 / 3f;
     public readonly float StandingDecorBonus = Math.Min(1f, StandingDecorCount / (float)TableCount);
     public readonly float FloorCoverageBonusRaw = Math.Min(
-        FLOOR_COVERAGE_TARGET,
-        FloorDecorCount / (float)MapTileCount
+        1f,
+        FloorDecorCount / (float)(MapTileCount * FLOOR_COVERAGE_TARGET)
     );
     public float TotalBonus => StandingDecorBonus * 0.7f + FloorCoverageBonusRaw * 0.3f;
 
@@ -49,16 +49,16 @@ public sealed record ShopBonusStats(
             I18n.Bonus_RugFloor_Values(
                 FloorDecorCount,
                 MapTileCount,
-                $"{FloorCoverageBonusRaw * 3:P2}",
-                FloorCoverageBonusRaw >= FLOOR_COVERAGE_TARGET ? I18n.Bonus_Capped() : ""
+                $"{FloorCoverageBonusRaw:P2}",
+                FloorCoverageBonusRaw >= 1f ? I18n.Bonus_Capped() : ""
             )
         );
         sb.Append("  ^");
         float totalBonus = TotalBonus;
         sb.Append(
             I18n.Bonus_Total(
-                $"{totalBonus + ShopkeepHaggle.MIN_MULT:P2}",
-                $"{totalBonus + ShopkeepHaggle.MIN_MULT + ShopkeepHaggle.MAX_MULT_DELTA:P2}"
+                $"{totalBonus / 2f + ShopkeepHaggle.MIN_MULT:0.00}",
+                $"{totalBonus + ShopkeepHaggle.MAX_MULT:0.00}"
             )
         );
         return sb.ToString();

@@ -1,12 +1,11 @@
 global using SObject = StardewValley.Object;
 using System.Diagnostics;
-using Merchant.Management;
 using Merchant.Misc;
 using Merchant.Models;
 using Merchant.ModIntegration;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
-using StardewValley;
+using StardewModdingAPI.Utilities;
 
 namespace Merchant;
 
@@ -21,7 +20,8 @@ public sealed class ModEntry : Mod
     private static IMonitor? mon;
     internal static ModConfig config = null!;
     internal static IModHelper help = null!;
-    internal static MerchantProgressData? ProgressData { get; private set; } = null;
+    private static PerScreen<MerchantProgressData?> progressData = new();
+    internal static MerchantProgressData? ProgressData => progressData.Value;
 
     public override void Entry(IModHelper helper)
     {
@@ -54,17 +54,17 @@ public sealed class ModEntry : Mod
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
-        ProgressData = null;
+        progressData.Value = null;
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
-        ProgressData = MerchantProgressData.Read();
+        progressData.Value = MerchantProgressData.Read();
     }
 
     private void OnSaving(object? sender, SavingEventArgs e)
     {
-        ProgressData?.Write();
+        progressData.Value?.Write();
         NPCLookup.Clear();
     }
 

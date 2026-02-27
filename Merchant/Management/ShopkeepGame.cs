@@ -207,6 +207,7 @@ public sealed class ShopkeepGame : IMinigame
     public bool tick(GameTime time)
     {
         // general updates
+        Game1.UpdateGameClock(time);
         if (Game1.activeClickableMenu != null)
         {
             Game1.PushUIMode();
