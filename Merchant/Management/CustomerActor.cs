@@ -32,7 +32,7 @@ public sealed class CustomerActor : NPC
             sourceFriend.Npc.Name
         )
     {
-        NetFields.CopyFrom(sourceFriend.Npc.NetFields);
+        this.modData.CopyFrom(sourceFriend.Npc.modData);
         this.sourceFriend = sourceFriend;
         this.entryPoint = entryPoint;
         forceOneTileWide.Value = true;
@@ -255,7 +255,8 @@ public sealed class CustomerActor : NPC
                 state.SetNext(ActorState.Leaving, 500, LeavingTheShop);
                 return;
             }
-            if (Random.Shared.NextSingle() < chanceToBuy + browsedCount * 0.1f)
+            float bonusChanceToBuy = giftTaste == gift_taste_love ? 0.2f : 0f;
+            if (Random.Shared.NextSingle() < chanceToBuy + bonusChanceToBuy + browsedCount * 0.1f)
             {
                 doEmote(giftTaste == gift_taste_love ? heartEmote : exclamationEmote);
                 state.SetNext(ActorState.Buy, 500);

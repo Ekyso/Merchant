@@ -48,6 +48,13 @@ public sealed record SoldRecord(string Buyer, uint Price, string ItemId, string?
         }
         return reprItem;
     }
+
+    public override string ToString()
+    {
+        if (PreserveId != null)
+            return $"Sold({Buyer}, {Price}, {ItemId}/{PreserveId})";
+        return $"Sold({Buyer}, {Price}, {ItemId})";
+    }
 }
 
 public sealed class ShopkeepSessionLog

@@ -7,6 +7,39 @@ namespace Merchant.Misc;
 
 public static class Topology
 {
+    public static List<(Point, int)> FormBrowseAround(Rectangle boundingBox, List<Point> reachable)
+    {
+        List<(Point, int)> browseAround = [];
+        Point pnt;
+        for (int i = 0; i < boundingBox.Width; i++)
+        {
+            int x = boundingBox.Left + i;
+            // X
+            // .
+            pnt = new(x, boundingBox.Bottom);
+            if (reachable.Contains(pnt))
+                browseAround.Add(new(pnt, 0));
+            // .
+            // X
+            pnt = new(x, boundingBox.Top - 1);
+            if (reachable.Contains(pnt))
+                browseAround.Add(new(pnt, 2));
+        }
+        for (int i = 0; i < boundingBox.Height; i++)
+        {
+            int y = boundingBox.Top + i;
+            // .X
+            pnt = new(boundingBox.Left - 1, y);
+            if (reachable.Contains(pnt))
+                browseAround.Add(new(pnt, 1));
+            // X.
+            pnt = new(boundingBox.Right, y);
+            if (reachable.Contains(pnt))
+                browseAround.Add(new(pnt, 3));
+        }
+        return browseAround;
+    }
+
     private static IEnumerable<Point> SurroundingTiles(Point nextPoint, int maxX, int maxY)
     {
         if (nextPoint.X > 0)

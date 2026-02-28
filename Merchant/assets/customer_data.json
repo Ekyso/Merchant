@@ -1,0 +1,20 @@
+{
+  "George": {
+    "Condition": "FALSE"
+  },
+  "Dwarf": {
+    "Condition": "FALSE"
+  },
+  "Krobus": {
+    "Condition": "FALSE"
+  },
+  "Sandy": {
+    "Chance": 0.5
+  },
+  "Wizard": {
+    "Chance": 0.2
+  },
+  "Linus": {
+    "Chance": 0.2
+  }
+}

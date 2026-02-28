@@ -114,7 +114,7 @@ public sealed record ShopkeepHaggle(
         pointer = 0f;
         pointerPitch = -1;
         state.Current = HaggleState.Increase;
-        state.SetNext(HaggleState.Decrease, ModEntry.Config.HaggleSpeed, State_DecreaseStart);
+        state.SetNext(HaggleState.Decrease, ModEntry.config.HaggleSpeed, State_DecreaseStart);
         Tries++;
     }
 
@@ -194,6 +194,7 @@ public sealed record ShopkeepHaggle(
             {
                 nextTargetPointer = targetPointer + delta * Random.Shared.NextSingle();
                 targetOverRange -= nextTargetPointer - targetPointer;
+                ModEntry.Log($"TargetPointer {targetPointer} -> {nextTargetPointer}");
                 state.SetNext(HaggleState.Begin, pickedPauseMS);
                 SetNextDialogue(CxDialogueKind.Haggle_Compromise, pickedPrice);
             }

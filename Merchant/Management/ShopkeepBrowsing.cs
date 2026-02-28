@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Merchant.Misc;
 using Merchant.Models;
+using Microsoft.CodeAnalysis;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
@@ -11,13 +12,7 @@ using StardewValley.Objects;
 
 namespace Merchant.Management;
 
-public record ForSaleTarget(
-    Item Thing,
-    Furniture Table,
-    List<(Point, int)> BrowseAround,
-    bool FromHeldChest = false,
-    int Idx = -1
-)
+public record ForSaleTarget(Item Thing, Furniture Table, List<(Point, int)> BrowseAround, int Idx = -1)
 {
     public CustomerActor? HeldBy { get; set; } = null;
     public SoldRecord? Sold
@@ -29,40 +24,16 @@ public record ForSaleTarget(
                 return;
             field = value;
             HeldBy = null;
-            if (FromHeldChest)
-            {
-                if (Table.heldObject.Value is Chest chest)
-                {
-                    for (int i = 0; i < chest.Items.Count; i++)
-                    {
-                        Item item = chest.Items[i];
-                        if (item != null)
-                        {
-                            item.onDetachedFromParent();
-                            if (item is SObject obj)
-                                obj.performRemoveAction();
-                            chest.Items[i] = null;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (Table.heldObject.Value is SObject obj)
-                {
-                    obj.onDetachedFromParent();
-                    obj.performRemoveAction();
-                    Table.heldObject.Value = null;
-                }
-            }
+            ModEntry.tableShim.TryRemoveItemFromTable(Table, Thing);
         }
     }
 
     public static bool CanOfferForSale(Item? item, Farmer player)
     {
-        return item is SObject
+        return item != null
+            && item is SObject obj
+            && !obj.bigCraftable.Value
             && item is not Furniture
-            && item is not Chest
             && item.sellToStorePrice(player.UniqueMultiplayerID) > 0;
     }
 }
@@ -131,18 +102,29 @@ public sealed record ShopkeepBrowsing(
         List<ForSaleTarget> forSaleTables = [];
         foreach (Furniture furniture in location.furniture)
         {
-            if (furniture.IsTable() && furniture.heldObject.Value != null)
-            {
-                AddForSaleTable(
+            if (
+                ModEntry.tableShim.TryGetForSaleTargets(
+                    furniture,
                     player,
                     reachableTiles,
-                    forSaleTables,
-                    furniture,
-                    ref standingDecorCount,
-                    ref unreachableTableCount
-                );
+                    out List<ForSaleTarget?>? ForSaleTargets
+                )
+            )
+            {
+                foreach (ForSaleTarget? forSale in ForSaleTargets)
+                {
+                    if (forSale == null)
+                    {
+                        unreachableTableCount++;
+                        standingDecorCount++;
+                    }
+                    else
+                    {
+                        forSaleTables.Add(forSale);
+                    }
+                }
             }
-            else if (furniture.furniture_type.Value == 12)
+            else if (furniture.furniture_type.Value == Furniture.rug)
             {
                 floorDecorCount += furniture.getTilesHigh() * furniture.getTilesWide();
             }
@@ -178,93 +160,6 @@ public sealed record ShopkeepBrowsing(
         browsing = new(location, player, entryPoint, reachableTiles, customerActors, forSaleTables, bonusStats);
         return true;
     }
-
-    public static void AddForSaleTable(
-        Farmer player,
-        List<Point> reachableTiles,
-        List<ForSaleTarget> forSaleTables,
-        Furniture furniture,
-        ref int standingDecorCount,
-        ref int unreachableTableCount
-    )
-    {
-        List<(Point, int)> browseAround = FormBrowseAround(furniture, reachableTiles).ToList();
-        bool unreachable = !browseAround.Any();
-        bool gotForSale = false;
-
-        if (furniture.heldObject.Value is Chest chest)
-        {
-            for (int i = 0; i < chest.Items.Count; i++)
-            {
-                Item item = chest.Items[i];
-                if (ForSaleTarget.CanOfferForSale(item, player))
-                {
-                    if (unreachable)
-                    {
-                        unreachableTableCount++;
-                        return;
-                    }
-                    gotForSale = true;
-                    forSaleTables.Add(new(item, furniture, browseAround, true, i));
-                }
-            }
-        }
-        else if (ForSaleTarget.CanOfferForSale(furniture.heldObject.Value, player))
-        {
-            if (unreachable)
-            {
-                unreachableTableCount++;
-                standingDecorCount++;
-                return;
-            }
-            gotForSale = true;
-            forSaleTables.Add(new(furniture.heldObject.Value, furniture, browseAround));
-        }
-
-        if (!gotForSale)
-        {
-            standingDecorCount++;
-        }
-    }
-
-    private static IEnumerable<(Point, int)> FormBrowseAround(Furniture furniture, List<Point> reachable)
-    {
-        Rectangle boundingBox = new(
-            (int)furniture.TileLocation.X,
-            (int)furniture.TileLocation.Y,
-            furniture.getTilesWide(),
-            furniture.getTilesHigh()
-        );
-        Point pnt;
-
-        for (int i = 0; i < boundingBox.Width; i++)
-        {
-            int x = boundingBox.Left + i;
-            // X
-            // .
-            pnt = new(x, boundingBox.Bottom);
-            if (reachable.Contains(pnt))
-                yield return new(pnt, 0);
-            // .
-            // X
-            pnt = new(x, boundingBox.Top - 1);
-            if (reachable.Contains(pnt))
-                yield return new(pnt, 2);
-        }
-        for (int i = 0; i < boundingBox.Height; i++)
-        {
-            int y = boundingBox.Top + i;
-            // .X
-            pnt = new(boundingBox.Left - 1, y);
-            if (reachable.Contains(pnt))
-                yield return new(pnt, 1);
-            // X.
-            pnt = new(boundingBox.Right, y);
-            if (reachable.Contains(pnt))
-                yield return new(pnt, 3);
-        }
-    }
-
     #endregion
 
     #region browsing loop
@@ -276,10 +171,19 @@ public sealed record ShopkeepBrowsing(
     }
 
     private readonly StateManager<BrowsingState> state = new(BrowsingState.NewCustomer);
-    private const int newCustomerCDMin = 2000;
-    private const int newCustomerCDMax = 4000;
+    private readonly int newCustomerCooldown = GetNewCustomerCooldown(Location);
+
+    private static int GetNewCustomerCooldown(GameLocation location)
+    {
+        // TODO: formalize these into data assets
+        if (location.IsRainingHere())
+            return 4000;
+        if (location.IsWinterHere() && (Game1.dayOfMonth >= 22 || Game1.dayOfMonth < 25))
+            return 1000;
+        return 2000;
+    }
+
     internal bool HaggleEnabled = true;
-    internal bool AboutToFinish => state.Next == BrowsingState.Finished;
 
     private readonly Queue<CustomerActor> waitingActors = ShuffleWaitingActors(CustomerActors);
     private readonly List<CustomerActor> dispatchedActors = [];
@@ -339,7 +243,7 @@ public sealed record ShopkeepBrowsing(
             AddNewCustomer();
             if (waitingActors.Any())
             {
-                state.SetNext(BrowsingState.NewCustomer, Random.Shared.Next(newCustomerCDMin, newCustomerCDMax));
+                state.SetNext(BrowsingState.NewCustomer, newCustomerCooldown + Random.Shared.Next(1000));
             }
         }
 
@@ -409,7 +313,7 @@ public sealed record ShopkeepBrowsing(
                 {
                     Player.shippedBasic(obj.ItemId, obj.Stack);
                 }
-                sb.Append($"\n- {forSale.Thing.DisplayName} ({forSale.Sold})");
+                sb.Append($"\n- {forSale.Thing.DisplayName} {forSale.Sold}");
             }
         }
 

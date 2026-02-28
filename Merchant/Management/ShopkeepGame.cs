@@ -22,6 +22,8 @@ public sealed class ShopkeepGame : IMinigame
 
     #region state
 
+    internal bool Unloaded = false;
+
     internal enum GameLoopState
     {
         Start,
@@ -41,8 +43,8 @@ public sealed class ShopkeepGame : IMinigame
 
     public bool overrideFreeMouseMovement() => true;
 
-    private bool ShouldControlActiveClickableMenu =>
-        Game1.activeClickableMenu is not null && state.Current != GameLoopState.Haggle;
+    private static bool ShouldControlActiveClickableMenu =>
+        Game1.activeClickableMenu is not null && Game1.activeClickableMenu is not DialogueBox;
     #endregion
 
     #region setup teardown
@@ -58,6 +60,8 @@ public sealed class ShopkeepGame : IMinigame
 
     private void OnRendering(object? sender, RenderingEventArgs e)
     {
+        if (Unloaded)
+            return;
         // adjust minigame rendering timing by nulling it before render
         if (Game1.currentMinigame == this)
             DynamicMethods.Set_Game1_currentMinigame(null);
@@ -65,6 +69,8 @@ public sealed class ShopkeepGame : IMinigame
 
     private void OnRendered(object? sender, RenderedEventArgs e)
     {
+        if (Unloaded)
+            return;
         // restore minigame after render
         if (Game1.currentMinigame == null)
         {
@@ -154,7 +160,7 @@ public sealed class ShopkeepGame : IMinigame
     public void unload()
     {
         browsing.Cleanup();
-        if (ModEntry.Config.EnableAutoRestock)
+        if (ModEntry.config.EnableAutoRestock)
             AutoRestockEmptyTables();
         haggling = null;
 
@@ -176,6 +182,8 @@ public sealed class ShopkeepGame : IMinigame
         player.setTileLocation(playerPreviousPosition.Item1.ToVector2());
         player.faceDirection(playerPreviousPosition.Item2);
         player.TemporaryItem = null;
+
+        Unloaded = true;
     }
 
     public bool forceQuit()
@@ -277,8 +285,6 @@ public sealed class ShopkeepGame : IMinigame
 
     private void AutoRestockEmptyTables()
     {
-        Furniture testTable = ItemRegistry.Create<Furniture>("(F)DesertTable");
-        testTable.Location = location;
         Queue<(Chest, int)> chestItemQueue = [];
         foreach (SObject obj in location.objects.Values)
         {
@@ -287,34 +293,36 @@ public sealed class ShopkeepGame : IMinigame
             for (int i = 0; i < chest.Items.Count; i++)
             {
                 Item item = chest.Items[i];
-                if (item == null)
-                    continue;
-                if (!testTable.performObjectDropInAction(item, true, null))
-                    continue;
                 if (!ForSaleTarget.CanOfferForSale(item, player))
                     continue;
                 chestItemQueue.Enqueue(new(chest, i));
             }
         }
+
+        Queue<Furniture> tableQueue = [];
         foreach (Furniture table in location.furniture)
         {
-            if (!table.IsTable())
-                continue;
-
-            if (chestItemQueue.TryDequeue(out (Chest, int) chestItem))
-            {
-                Item? item = chestItem.Item1.Items[chestItem.Item2];
-                if (table.performObjectDropInAction(item, true, null))
-                {
-                    table.performObjectDropInAction(item, false, null);
-                    item = item.ConsumeStack(1);
-                    chestItem.Item1.Items[chestItem.Item2] = item;
-                }
-                if (item == null)
-                    continue;
-                chestItemQueue.Enqueue(chestItem);
-            }
+            if (ModEntry.tableShim.HasSpaceForItems(table))
+                tableQueue.Enqueue(table);
         }
+
+        while (tableQueue.TryPeek(out Furniture? table) && chestItemQueue.TryDequeue(out (Chest, int) chestItem))
+        {
+            Item? item = chestItem.Item1.Items[chestItem.Item2];
+            string itemId = item.QualifiedItemId;
+            if (ModEntry.tableShim.TryPlaceItemOnTable(table, ref item))
+            {
+                ModEntry.Log(
+                    $"Restock {table.QualifiedItemId}({table.TileLocation}) with {itemId} ({item?.Stack ?? 0} left)"
+                );
+                chestItem.Item1.Items[chestItem.Item2] = item;
+            }
+            if (item != null)
+                chestItemQueue.Enqueue(chestItem);
+            if (!ModEntry.tableShim.HasSpaceForItems(table))
+                tableQueue.Dequeue();
+        }
+
         foreach (SObject obj in location.objects.Values)
         {
             if (obj is not Chest chest)

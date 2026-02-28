@@ -1,5 +1,6 @@
 global using SObject = StardewValley.Object;
 using System.Diagnostics;
+using Merchant.Management;
 using Merchant.Misc;
 using Merchant.Models;
 using Merchant.ModIntegration;
@@ -19,12 +20,14 @@ public sealed class ModEntry : Mod
 #endif
     public const string ModId = "mushymato.Merchant";
     private static IMonitor? mon;
-    internal static ModConfig Config { get; private set; } = null!;
     internal static IModHelper help = null!;
+    internal static ModConfig config = null!;
     private static readonly PerScreen<MerchantProgressData?> progressData = new();
     internal static MerchantProgressData? ProgressData => progressData.Value;
     private static readonly PerScreen<NPCFriendEntries?> friendEntries = new();
     internal static NPCFriendEntries FriendEntries => friendEntries.Value ??= new NPCFriendEntries(Game1.player);
+
+    internal static ITableShim tableShim = new TableShimVanilla();
 
     public override void Entry(IModHelper helper)
     {
@@ -34,14 +37,30 @@ public sealed class ModEntry : Mod
 
         mon = Monitor;
         help = helper;
-        Config = help.ReadConfig<ModConfig>();
+        config = help.ReadConfig<ModConfig>();
         help.Events.GameLoop.GameLaunched += OnGameLaunched;
         help.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         help.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         help.Events.GameLoop.Saving += OnSaving;
 
+        help.ConsoleCommands.Add(
+            "merchant-forcequit",
+            "Force quit current merchant shopkeep session",
+            ConsoleForceQuit
+        );
+
         AssetManager.Register();
         GameDelegates.Register();
+    }
+
+    private void ConsoleForceQuit(string arg1, string[] arg2)
+    {
+        if (Game1.currentMinigame is ShopkeepGame shopkeepGame)
+        {
+            shopkeepGame.Unloaded = true;
+            shopkeepGame.forceQuit();
+            Game1.currentMinigame = null;
+        }
     }
 
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
@@ -51,8 +70,10 @@ public sealed class ModEntry : Mod
             is IGenericModConfigMenuApi gmcm
         )
         {
-            Config.Register(ModManifest, gmcm);
+            config.Register(ModManifest, gmcm);
         }
+
+        // ffApi = Helper.ModRegistry.GetApi<IFurnitureFrameworkAPI>("leroymilo.FurnitureFramework");
     }
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
