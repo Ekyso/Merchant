@@ -22,6 +22,7 @@ public sealed class CustomerActor : NPC
     #region make
     private readonly Point entryPoint;
     internal readonly FriendEntry sourceFriend;
+    internal bool HaggleEnabled = true;
 
     public CustomerActor(FriendEntry sourceFriend, Point entryPoint)
         : base(
@@ -225,7 +226,7 @@ public sealed class CustomerActor : NPC
 
     private void DecideBuy(ActorState oldState, ActorState newState)
     {
-        if (ForSale != null)
+        if (HaggleEnabled && ForSale != null)
         {
             int giftTaste = GetGiftTasteForSaleItem(ForSale);
             if (Random.Shared.NextSingle() < chanceToBuy + browsedCount * 0.1f)

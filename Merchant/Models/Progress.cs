@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Xna.Framework;
 using StardewValley;
+using StardewValley.ItemTypeDefinitions;
 using StardewValley.Objects;
 
 namespace Merchant.Models;
@@ -29,7 +30,8 @@ public sealed record SoldRecord(string Buyer, uint Price, string ItemId, string?
         if (Color != null)
         {
             Color itemColor = new(Color[0], Color[1], Color[2], Color[3]);
-            reprItem = new ColoredObject(ItemId, 1, itemColor);
+            ParsedItemData itemData = ItemRegistry.GetDataOrErrorItem(ItemId);
+            reprItem = new ColoredObject(itemData.ItemId, 1, itemColor);
         }
         else
         {
@@ -37,7 +39,13 @@ public sealed record SoldRecord(string Buyer, uint Price, string ItemId, string?
         }
 
         if (reprItem is SObject obj)
+        {
             obj.Edibility = -300;
+            if (PreserveId != null)
+            {
+                obj.preservedParentSheetIndex.Value = PreserveId;
+            }
+        }
         return reprItem;
     }
 }

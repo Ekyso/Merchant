@@ -11,11 +11,12 @@ namespace Merchant.Misc;
 
 internal static class AssetManager
 {
-    private const string Asset_TextureCashregister = $"{ModEntry.ModId}/cashregister";
+    private const string Asset_TextureCraftables = $"{ModEntry.ModId}/craftables";
     internal const string Asset_Strings = $"{ModEntry.ModId}\\Strings";
     internal const string Asset_CustomerData = $"{ModEntry.ModId}/Customers";
     internal const string CashRegisterId = $"{ModEntry.ModId}_CashRegister";
     internal const string CashRegisterQId = $"(BC){ModEntry.ModId}_CashRegister";
+    internal const string ContextTag_CashRegister = $"{ModEntry.ModId}_cash_register";
     internal const string DoorbellCue = $"{ModEntry.ModId}_doorbell";
 
     private static Dictionary<string, CustomerData>? customerData = null;
@@ -62,9 +63,9 @@ internal static class AssetManager
         {
             e.Edit(Edit_Machines, AssetEditPriority.Default);
         }
-        else if (name.IsEquivalentTo(Asset_TextureCashregister))
+        else if (name.IsEquivalentTo(Asset_TextureCraftables))
         {
-            e.LoadFromModFile<Texture2D>("assets/cashregister.png", AssetLoadPriority.Low);
+            e.LoadFromModFile<Texture2D>("assets/craftables.png", AssetLoadPriority.Low);
         }
         else if (name.IsEquivalentTo("Data/AudioChanges"))
         {
@@ -122,14 +123,14 @@ internal static class AssetManager
             Name = CashRegisterId,
             DisplayName = $"[LocalizedText {Asset_Strings}:CashRegister_Name]",
             Description = $"[LocalizedText {Asset_Strings}:CashRegister_Desc]",
-            Price = 5000,
+            Price = 2500,
             Fragility = 0,
             CanBePlacedOutdoors = true,
             CanBePlacedIndoors = true,
             IsLamp = true,
-            Texture = Asset_TextureCashregister,
+            Texture = Asset_TextureCraftables,
             SpriteIndex = 0,
-            ContextTags = [ModEntry.ModId],
+            ContextTags = [ContextTag_CashRegister],
             CustomFields = null,
         };
     }

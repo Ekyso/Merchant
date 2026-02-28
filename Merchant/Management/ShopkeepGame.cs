@@ -153,7 +153,6 @@ public sealed class ShopkeepGame : IMinigame
 
     public void unload()
     {
-        ModEntry.LogDebug("ShopkeepGame.unload");
         browsing.Cleanup();
         if (ModEntry.Config.EnableAutoRestock)
             AutoRestockEmptyTables();
@@ -215,6 +214,7 @@ public sealed class ShopkeepGame : IMinigame
         {
             Game1.PushUIMode();
             Game1.activeClickableMenu.update(time);
+            Game1.activeClickableMenu.performHoverAction(Game1.getMouseX(), Game1.getMouseY());
             Game1.PopUIMode();
             if (Game1.activeClickableMenu is ConfirmationDialog)
                 return false;
@@ -342,6 +342,10 @@ public sealed class ShopkeepGame : IMinigame
     #region gameloop report
     private void DoReport(GameTime time)
     {
+        if (Game1.activeClickableMenu == null)
+        {
+            state.Current = GameLoopState.Unload;
+        }
         browsing.UpdateActorsOnly(time);
     }
     #endregion

@@ -278,7 +278,7 @@ public sealed record ShopkeepBrowsing(
     private readonly StateManager<BrowsingState> state = new(BrowsingState.NewCustomer);
     private const int newCustomerCDMin = 2000;
     private const int newCustomerCDMax = 4000;
-
+    internal bool HaggleEnabled = true;
     internal bool AboutToFinish => state.Next == BrowsingState.Finished;
 
     private readonly Queue<CustomerActor> waitingActors = ShuffleWaitingActors(CustomerActors);
@@ -288,6 +288,7 @@ public sealed record ShopkeepBrowsing(
     {
         customerActors = customerActors.ToList();
         Random.Shared.ShuffleInPlace(customerActors);
+        ModEntry.Log($"Queued {customerActors.Count} actors");
         return new(customerActors);
     }
 
@@ -373,6 +374,7 @@ public sealed record ShopkeepBrowsing(
             return;
         }
         ModEntry.Log($"AddNewCustomer: {nextActor.Name}");
+        nextActor.HaggleEnabled = HaggleEnabled;
         dispatchedActors.Add(nextActor);
         nextActor.currentLocation = Location;
         nextActor.setTileLocation(EntryPoint.ToVector2());
