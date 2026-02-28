@@ -230,7 +230,7 @@ public sealed class ShopkeepGame : IMinigame
         {
             Game1.UpdateGameClock(time);
             if (Game1.timeOfDay >= 2500)
-                state.Current = GameLoopState.Report;
+                PrepareReport();
         }
         state.Update(time);
         // state behavior
@@ -275,12 +275,17 @@ public sealed class ShopkeepGame : IMinigame
         }
         if (browsing.Update(time, ref haggling))
         {
-            Game1.stopMusicTrack(MusicContext.MiniGame);
-            Game1.changeMusicTrack("harveys_theme_jazz", false, MusicContext.MiniGame);
-            Game1.activeClickableMenu = browsing.Finalize();
-            state.Current = GameLoopState.Report;
+            PrepareReport();
             return;
         }
+    }
+
+    private void PrepareReport()
+    {
+        Game1.stopMusicTrack(MusicContext.MiniGame);
+        Game1.changeMusicTrack("harveys_theme_jazz", false, MusicContext.MiniGame);
+        Game1.activeClickableMenu = browsing.Finalize();
+        state.SetAndLock(GameLoopState.Report);
     }
 
     private void AutoRestockEmptyTables()
@@ -346,7 +351,14 @@ public sealed class ShopkeepGame : IMinigame
         if (haggling.Update(time))
         {
             haggling = null;
-            state.Current = player.Stamina < 9 ? GameLoopState.Report : GameLoopState.Browse;
+            if (player.Stamina < 9)
+            {
+                PrepareReport();
+            }
+            else
+            {
+                state.Current = GameLoopState.Browse;
+            }
             return;
         }
     }
@@ -357,6 +369,7 @@ public sealed class ShopkeepGame : IMinigame
     {
         if (Game1.activeClickableMenu == null)
         {
+            state.Unlock();
             state.SetAndLock(GameLoopState.Unload);
         }
         browsing.UpdateActorsOnly(time);
@@ -376,6 +389,7 @@ public sealed class ShopkeepGame : IMinigame
         }
         else if (state.Current == GameLoopState.Report)
         {
+            state.Unlock();
             state.SetAndLock(GameLoopState.Unload);
         }
     }
@@ -412,9 +426,10 @@ public sealed class ShopkeepGame : IMinigame
         {
             if (state.Current == GameLoopState.Report)
             {
+                state.Unlock();
                 state.SetAndLock(GameLoopState.Unload);
             }
-            else
+            else if (state.Current != GameLoopState.Haggle)
             {
                 Game1.activeClickableMenu = new ConfirmationDialog(I18n.QuitConfirm(), ConfirmForceQuit);
             }
@@ -424,7 +439,7 @@ public sealed class ShopkeepGame : IMinigame
     private void ConfirmForceQuit(Farmer who)
     {
         ModEntry.Log("ConfirmForceQuit");
-        state.SetAndLock(GameLoopState.Unload);
+        PrepareReport();
     }
 
     #endregion

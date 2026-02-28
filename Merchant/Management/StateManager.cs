@@ -42,6 +42,11 @@ public sealed class StateManager<T>(T defaultValue, string? loggingName = null)
         }
     }
 
+    public void Unlock()
+    {
+        Lock = false;
+    }
+
     public void SetAndLock(T current)
     {
         Current = current;
