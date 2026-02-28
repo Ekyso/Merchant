@@ -209,7 +209,6 @@ public sealed class ShopkeepGame : IMinigame
     public bool tick(GameTime time)
     {
         // general updates
-        Game1.UpdateGameClock(time);
         if (Game1.activeClickableMenu != null)
         {
             Game1.PushUIMode();
@@ -218,6 +217,12 @@ public sealed class ShopkeepGame : IMinigame
             Game1.PopUIMode();
             if (Game1.activeClickableMenu is ConfirmationDialog)
                 return false;
+        }
+        else
+        {
+            Game1.UpdateGameClock(time);
+            if (Game1.timeOfDay >= 2500)
+                state.Current = GameLoopState.Report;
         }
         state.Update(time);
         // state behavior

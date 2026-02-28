@@ -6,6 +6,7 @@ using StardewValley;
 using StardewValley.GameData;
 using StardewValley.GameData.BigCraftables;
 using StardewValley.GameData.Machines;
+using StardewValley.GameData.Shops;
 
 namespace Merchant.Misc;
 
@@ -66,6 +67,10 @@ internal static class AssetManager
         else if (name.IsEquivalentTo(Asset_TextureCraftables))
         {
             e.LoadFromModFile<Texture2D>("assets/craftables.png", AssetLoadPriority.Low);
+        }
+        else if (name.IsEquivalentTo("Data/Shops"))
+        {
+            e.Edit(Edit_Shops, AssetEditPriority.Default);
         }
         else if (name.IsEquivalentTo("Data/AudioChanges"))
         {
@@ -133,5 +138,12 @@ internal static class AssetManager
             ContextTags = [ContextTag_CashRegister],
             CustomFields = null,
         };
+    }
+
+    private static void Edit_Shops(IAssetData asset)
+    {
+        IDictionary<string, ShopData> data = asset.AsDictionary<string, ShopData>().Data;
+        if (data.ContainsKey("Carpenter"))
+            data["Carpenter"].Items.Add(new() { Id = CashRegisterQId, ItemId = CashRegisterQId });
     }
 }
