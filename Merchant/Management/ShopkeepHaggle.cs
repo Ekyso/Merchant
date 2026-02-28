@@ -229,7 +229,7 @@ public sealed record ShopkeepHaggle(
         SetNextDialogue(CxDialogueKind.Haggle_Fail, pickedPrice);
     }
 
-    private void State_DecreaseStart(HaggleState oldState, HaggleState newState)
+    private void State_DecreaseStart()
     {
         state.SetNext(HaggleState.Begin, pickedPauseMS);
     }

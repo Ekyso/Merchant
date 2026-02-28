@@ -60,7 +60,10 @@ public record ForSaleTarget(
 
     public static bool CanOfferForSale(Item? item, Farmer player)
     {
-        return item != null && item is not Furniture && item.sellToStorePrice(player.UniqueMultiplayerID) > 0;
+        return item is SObject
+            && item is not Furniture
+            && item is not Chest
+            && item.sellToStorePrice(player.UniqueMultiplayerID) > 0;
     }
 }
 
@@ -158,10 +161,7 @@ public sealed record ShopkeepBrowsing(
 
         // customers
         List<CustomerActor> customerActors = [];
-        int customerCount = Math.Min(
-            32,
-            Math.Min(forSaleTables.Count, 4 + (ModEntry.ProgressData?.Logs.Count ?? 0) / 2)
-        );
+        int customerCount = Math.Min(32, Math.Min(forSaleTables.Count, 4 + (ModEntry.ProgressData?.Logs.Count ?? 0)));
         foreach (FriendEntry sourceFriend in ModEntry.FriendEntries.PickCustomerNPCs(customerCount))
         {
             customerActors.Add(new CustomerActor(sourceFriend, entryPoint));
@@ -194,7 +194,6 @@ public sealed record ShopkeepBrowsing(
 
         if (furniture.heldObject.Value is Chest chest)
         {
-            // FF branch
             for (int i = 0; i < chest.Items.Count; i++)
             {
                 Item item = chest.Items[i];
@@ -221,6 +220,7 @@ public sealed record ShopkeepBrowsing(
             gotForSale = true;
             forSaleTables.Add(new(furniture.heldObject.Value, furniture, browseAround));
         }
+
         if (!gotForSale)
         {
             standingDecorCount++;
@@ -414,7 +414,9 @@ public sealed record ShopkeepBrowsing(
         }
 
         if (sales.Count <= 0)
+        {
             return null;
+        }
 
         ModEntry.Log(sb.ToString(), LogLevel.Info);
 

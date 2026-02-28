@@ -5,7 +5,7 @@ namespace Merchant.Management;
 public sealed class StateManager<T>(T defaultValue)
     where T : Enum
 {
-    public delegate void stateChanged(T oldState, T newState);
+    public delegate void stateChanged();
     public T Current
     {
         get => field;
@@ -45,7 +45,7 @@ public sealed class StateManager<T>(T defaultValue)
                 T old = Current;
                 stateChanged? cb = changeCallback;
                 Current = Next;
-                cb?.Invoke(old, Next);
+                cb?.Invoke();
             }
         }
     }

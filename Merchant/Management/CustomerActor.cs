@@ -94,8 +94,11 @@ public sealed class CustomerActor : NPC
             case gift_taste_like:
                 haggleBaseTarget += 0.1f;
                 break;
+            case gift_taste_dislike:
+                haggleBaseTarget -= 0.1f;
+                break;
         }
-        return haggleBaseTarget + 0.2f * Random.Shared.NextSingle();
+        return Math.Max(0f, haggleBaseTarget + 0.2f * Random.Shared.NextSingle());
     }
 
     public float GetHaggleTargetOverRange()
@@ -181,27 +184,44 @@ public sealed class CustomerActor : NPC
                 return;
             }
 
-            List<ForSaleTarget> preferredForSaleTargets = availableForSale
-                .Where(forSale =>
+            List<ForSaleTarget>[] rankedForSaleTargets =
+            [
+                [], // love
+                [], // like
+                [], // neutral
+                [], // dislike
+                [], // hated
+            ];
+            foreach (ForSaleTarget forSale in availableForSale)
+            {
+                int giftTaste = GetGiftTasteForSaleItem(forSale);
+                int seq = giftTaste switch
                 {
-                    int giftTaste = GetGiftTasteForSaleItem(forSale);
-                    return giftTaste != gift_taste_hate && giftTaste != gift_taste_dislike;
-                })
-                .ToList();
+                    gift_taste_love => 0,
+                    gift_taste_stardroptea => 0,
+                    gift_taste_like => 1,
+                    gift_taste_neutral => 2,
+                    gift_taste_dislike => 3,
+                    _ => 4,
+                };
+                rankedForSaleTargets[seq].Add(forSale);
+            }
+            ForSaleTarget? nextForSale = null;
+            foreach (List<ForSaleTarget> giftTasteForSale in rankedForSaleTargets)
+            {
+                if (giftTasteForSale.Count > 0)
+                {
+                    nextForSale = Random.Shared.ChooseFrom(giftTasteForSale);
+                    break;
+                }
+            }
 
-            ForSaleTarget nextForSale;
-            if (preferredForSaleTargets.Count > 0)
-            {
-                nextForSale = Random.Shared.ChooseFrom(preferredForSaleTargets);
-            }
-            else if (availableForSale.Count > 0)
-            {
-                nextForSale = Random.Shared.ChooseFrom(availableForSale);
-            }
-            else
+            if (nextForSale == null)
             {
                 if (availableForSaleHeld == null)
+                {
                     LeavingTheShop();
+                }
                 return;
             }
 
@@ -224,14 +244,20 @@ public sealed class CustomerActor : NPC
         state.SetNext(ActorState.Decide, Random.Shared.NextSingle() * 750, DecideBuy);
     }
 
-    private void DecideBuy(ActorState oldState, ActorState newState)
+    private void DecideBuy()
     {
         if (HaggleEnabled && ForSale != null)
         {
             int giftTaste = GetGiftTasteForSaleItem(ForSale);
+            if (giftTaste == gift_taste_hate)
+            {
+                doEmote(angryEmote);
+                state.SetNext(ActorState.Leaving, 500, LeavingTheShop);
+                return;
+            }
             if (Random.Shared.NextSingle() < chanceToBuy + browsedCount * 0.1f)
             {
-                doEmote(giftTaste == gift_taste_love ? 20 : 16);
+                doEmote(giftTaste == gift_taste_love ? heartEmote : exclamationEmote);
                 state.SetNext(ActorState.Buy, 500);
                 return;
             }
