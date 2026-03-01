@@ -11,10 +11,11 @@
       "Entries": {
         "{{ModId}}_EggBoost": {
           "Id": "{{ModId}}_EggBoost",
+          "Description": "Gib Egg",
           "RequiredContextTags": [
             "egg_item"
           ],
-          "Value": 0.7,
+          "Value": 0.2,
         }
       }
     }
