@@ -6,5 +6,9 @@
       "Action": "Include",
       "FromFile": "data/haggle_dialogue.json"
     },
+    {
+      "Action": "Include",
+      "FromFile": "data/building_boost.json"
+    },
   ]
 }

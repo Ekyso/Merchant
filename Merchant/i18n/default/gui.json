@@ -1,10 +1,11 @@
 {
   "minigame.id": "Merchant: Shopkeeping",
   "fail-reason.exhausted": "You are too tired to run a shop right now.",
-  "fail-reason.no-warps-in": "This building has no entrances for customers.",
+  "fail-reason.cant-be-shop": "This building can't be a shop.",
+  "fail-reason.no-warps-in": "This building has no entrance for customers.",
   "fail-reason.invalid-map": "This building's map is invalid.",
+  "fail-reason.warp-blocked": "This building's entrance is not passable by customers.",
   "fail-reason.no-reachable": "This building has no walkable tiles for customers.",
-  "fail-reason.is-farm-house": "You can't open a shop in your house!",
   "fail-reason.not-farm-building": "You can only open a shop in farm buildings (e.g. a shed).",
   "fail-reason.no-items-for-sale": "Put out some items on tables for sale, and make sure customers can reach them.",
   "fail-reason.too-tired": "You are too tired to do any shopkeeping (not enough energy).",

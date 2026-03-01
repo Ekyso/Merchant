@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Serialization;
 using StardewValley.Extensions;
 
 namespace Merchant.Models;
@@ -19,54 +20,56 @@ public sealed class CustomerData
     public float Chance { get; set; } = 1.0f;
 
     // Haggle Dialogue
-    public Dictionary<string, HaggleDialogue> Dialogue = [];
+    public Dictionary<string, CustomerDialogue> Dialogue = [];
 
-    private List<string>[]? MergedHaggleDialogue
+    private List<string>[]? mergedDialogues = null;
+
+    [OnDeserialized]
+    private void OnDeserialized(StreamingContext context)
     {
-        get
+        // merge
+        mergedDialogues =
+        [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+        ];
+        foreach (CustomerDialogue dialogue in Dialogue.Values)
         {
-            if (field != null || Dialogue == null)
-                return field;
-            field =
-            [
-                [],
-                [],
-                [],
-                [],
-                [],
-            ];
-            foreach (HaggleDialogue haggleDialogue in Dialogue.Values)
-            {
-                if (haggleDialogue.Ask != null)
-                    field[(int)CustomerDialogueKind.Haggle_Ask].Add(haggleDialogue.Ask);
-                if (haggleDialogue.Compromise != null)
-                    field[(int)CustomerDialogueKind.Haggle_Compromise].Add(haggleDialogue.Compromise);
-                if (haggleDialogue.Overpriced != null)
-                    field[(int)CustomerDialogueKind.Haggle_Overpriced].Add(haggleDialogue.Overpriced);
-                if (haggleDialogue.Success != null)
-                    field[(int)CustomerDialogueKind.Haggle_Success].Add(haggleDialogue.Success);
-                if (haggleDialogue.Fail != null)
-                    field[(int)CustomerDialogueKind.Haggle_Fail].Add(haggleDialogue.Fail);
-            }
-            return field;
+            if (dialogue.Haggle_Ask != null)
+                mergedDialogues[(int)CustomerDialogueKind.Haggle_Ask].Add(dialogue.Haggle_Ask);
+            if (dialogue.Haggle_Compromise != null)
+                mergedDialogues[(int)CustomerDialogueKind.Haggle_Compromise].Add(dialogue.Haggle_Compromise);
+            if (dialogue.Haggle_Overpriced != null)
+                mergedDialogues[(int)CustomerDialogueKind.Haggle_Overpriced].Add(dialogue.Haggle_Overpriced);
+            if (dialogue.Haggle_Success != null)
+                mergedDialogues[(int)CustomerDialogueKind.Haggle_Success].Add(dialogue.Haggle_Success);
+            if (dialogue.Haggle_Fail != null)
+                mergedDialogues[(int)CustomerDialogueKind.Haggle_Fail].Add(dialogue.Haggle_Fail);
         }
-    } = null;
+    }
 
-    internal bool TryGetCustomerDialogue(CustomerDialogueKind kind, [NotNullWhen(true)] out string? dialogueText)
+    internal bool TryGetDialogueText(CustomerDialogueKind kind, [NotNullWhen(true)] out string? dialogueText)
     {
         dialogueText = null;
-        if (MergedHaggleDialogue == null || (int)kind >= MergedHaggleDialogue.Length)
+        if (mergedDialogues == null || (int)kind >= mergedDialogues.Length)
             return false;
-        dialogueText = Random.Shared.ChooseFrom(MergedHaggleDialogue[(int)kind]);
+        dialogueText = Random.Shared.ChooseFrom(mergedDialogues[(int)kind]);
         return dialogueText != null;
     }
 }
 
-public sealed class HaggleDialogue
+public sealed class CustomerDialogue
 {
-    public string? Ask { get; set; } = null;
-    public string? Compromise { get; set; } = null;
-    public string? Overpriced { get; set; } = null;
-    public string? Success { get; set; } = null;
-    public string? Fail { get; set; } = null;
+    public string? Haggle_Ask { get; set; } = null;
+    public string? Haggle_Compromise { get; set; } = null;
+    public string? Haggle_Overpriced { get; set; } = null;
+    public string? Haggle_Success { get; set; } = null;
+    public string? Haggle_Fail { get; set; } = null;
 }

@@ -5,6 +5,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.GameData;
 using StardewValley.GameData.BigCraftables;
+using StardewValley.GameData.Buildings;
 using StardewValley.GameData.Characters;
 using StardewValley.GameData.Machines;
 using StardewValley.GameData.Shops;
@@ -16,19 +17,30 @@ internal static class AssetManager
     private const string Asset_TextureCraftables = $"{ModEntry.ModId}/craftables";
     internal const string Asset_Strings = $"{ModEntry.ModId}\\Strings";
     internal const string Asset_CustomerData = $"{ModEntry.ModId}/Customers";
-    internal const string Asset_ShopLocations = $"{ModEntry.ModId}/ShopLocations";
+    internal const string Asset_ShopkeepLocationData = $"{ModEntry.ModId}/ShopkeepLocations";
     internal const string CashRegisterId = $"{ModEntry.ModId}_CashRegister";
     internal const string CashRegisterQId = $"(BC){ModEntry.ModId}_CashRegister";
     internal const string ContextTag_CashRegister = $"{ModEntry.ModId}_cash_register";
     internal const string DoorbellCue = $"{ModEntry.ModId}_doorbell";
 
+    private const AssetEditPriority ReallyEarly = AssetEditPriority.Early - 100;
+
     private static Dictionary<string, CustomerData>? customerData = null;
-    public static Dictionary<string, CustomerData> CustomerData =>
-        customerData ??= Game1.content.Load<Dictionary<string, CustomerData>>(Asset_CustomerData);
 
     public static CustomerData? GetCustomerData(string key)
     {
-        if (CustomerData.TryGetValue(key, out CustomerData? data))
+        customerData ??= Game1.content.Load<Dictionary<string, CustomerData>>(Asset_CustomerData);
+        if (customerData.TryGetValue(key, out CustomerData? data))
+            return data;
+        return null;
+    }
+
+    private static Dictionary<string, ShopkeepLocationData>? shopkeepLocData = null;
+
+    public static ShopkeepLocationData? GetShopkeepLocationData(string key)
+    {
+        shopkeepLocData ??= Game1.content.Load<Dictionary<string, ShopkeepLocationData>>(Asset_ShopkeepLocationData);
+        if (shopkeepLocData.TryGetValue(key, out ShopkeepLocationData? data))
             return data;
         return null;
     }
@@ -49,9 +61,21 @@ internal static class AssetManager
 
     private static void OnAssetInvalidated(object? sender, AssetsInvalidatedEventArgs e)
     {
-        if (e.NamesWithoutLocale.Any(name => name.IsEquivalentTo(Asset_CustomerData)))
+        if (
+            e.NamesWithoutLocale.Any(name =>
+                name.IsEquivalentTo(Asset_CustomerData) || name.IsEquivalentTo("Data/Characters")
+            )
+        )
         {
             customerData = null;
+        }
+        if (
+            e.NamesWithoutLocale.Any(name =>
+                name.IsEquivalentTo(Asset_ShopkeepLocationData) || name.IsEquivalentTo("Data/Buildings")
+            )
+        )
+        {
+            shopkeepLocData = null;
         }
     }
 
@@ -74,25 +98,25 @@ internal static class AssetManager
         {
             e.Edit(Edit_AudioChanges, AssetEditPriority.Default);
         }
-        else if (name.IsEquivalentTo(Asset_ShopLocations))
+        else if (name.IsEquivalentTo(Asset_ShopkeepLocationData))
         {
             e.LoadFromModFile<Dictionary<string, ShopkeepLocationData>>(
-                            "assets/data_shopkeep_locations.json",
-                            AssetLoadPriority.Exclusive
-                        );
-            e.Edit(Edit_CustomerData, AssetEditPriority.Early - 100);
+                "assets/data_shopkeep_locations.json",
+                AssetLoadPriority.Exclusive
+            );
+            e.Edit(Edit_ShopkeepLocations, ReallyEarly);
         }
         else if (name.IsEquivalentTo(Asset_CustomerData))
         {
             e.LoadFromModFile<Dictionary<string, CustomerData>>(
-                "assets/customer_data.json",
+                "assets/data_customers.json",
                 AssetLoadPriority.Exclusive
             );
-            e.Edit(Edit_CustomerData, AssetEditPriority.Early - 100);
+            e.Edit(Edit_CustomerData, ReallyEarly);
         }
         else if (name.IsEquivalentTo(Asset_TextureCraftables))
         {
-            e.LoadFromModFile<Texture2D>("assets/craftables.png", AssetLoadPriority.Low);
+            e.LoadFromModFile<Texture2D>("assets/tx_craftables.png", AssetLoadPriority.Low);
         }
         else if (name.IsEquivalentTo(Asset_Strings))
         {
@@ -108,6 +132,17 @@ internal static class AssetManager
         }
     }
 
+    private static void Edit_ShopkeepLocations(IAssetData asset)
+    {
+        IDictionary<string, ShopkeepLocationData> data = asset.AsDictionary<string, ShopkeepLocationData>().Data;
+        foreach ((string key, BuildingData buildingData) in Game1.buildingData)
+        {
+            if (buildingData.IndoorMap == null)
+                continue;
+            data.TryAdd(key, new());
+        }
+    }
+
     private static void Edit_CustomerData(IAssetData asset)
     {
         IDictionary<string, CustomerData> data = asset.AsDictionary<string, CustomerData>().Data;
@@ -115,7 +150,7 @@ internal static class AssetManager
         {
             if (GameStateQuery.IsImmutablyFalse(charaData.CanSocialize))
                 continue;
-            data[key] = new();
+            data.TryAdd(key, new());
         }
     }
 

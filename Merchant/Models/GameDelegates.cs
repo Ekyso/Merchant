@@ -1,6 +1,7 @@
 using Merchant.Management;
 using Microsoft.Xna.Framework;
 using StardewValley;
+using StardewValley.Triggers;
 
 namespace Merchant.Models;
 
@@ -9,10 +10,14 @@ public static class GameDelegates
     private const string TileAction_CashRegister = $"{ModEntry.ModId}_CashRegister";
     internal const string InteractMethod =
         $"Merchant.Models.{nameof(GameDelegates)}, Merchant: {nameof(InteractCashRegister)}";
+    internal const string Merchant_Sold = $"{ModEntry.ModId}_Sold";
+    internal const string ModData_SoldPrice = $"{ModEntry.ModId}/Sold/Price";
+    internal const string ModData_SoldBuyer = $"{ModEntry.ModId}/Sold/Buyer";
 
     public static void Register()
     {
         GameLocation.RegisterTileAction(TileAction_CashRegister, TileActionCashRegister);
+        TriggerActionManager.RegisterTrigger(Merchant_Sold);
     }
 
     public static bool ShowMerchantMenu(GameLocation location, Farmer player, Point cashRegisterPoint)

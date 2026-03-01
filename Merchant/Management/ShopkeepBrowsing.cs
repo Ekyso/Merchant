@@ -7,14 +7,21 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
-using StardewValley.Locations;
 using StardewValley.Objects;
+using StardewValley.Triggers;
 
 namespace Merchant.Management;
 
-public record ForSaleTarget(Item Thing, Furniture Table, List<(Point, int)> BrowseAround, int Idx = -1)
+public record ForSaleTarget(
+    Item Thing,
+    Furniture Table,
+    List<(Point, int)> BrowseAround,
+    ShopkeepThemeBoostData? Boost,
+    int Idx = -1
+)
 {
     public CustomerActor? HeldBy { get; set; } = null;
+    public float ThemeBonus { get; set; } = 0f;
     public SoldRecord? Sold
     {
         get => field;
@@ -45,7 +52,8 @@ public sealed record ShopkeepBrowsing(
     List<Point> ReachableTiles,
     List<CustomerActor> CustomerActors,
     List<ForSaleTarget> ForSaleTargets,
-    ShopBonusStats ShopBonus
+    ShopBonusStats ShopBonus,
+    ShopkeepLocationData? ShopkeepLocationData
 )
 {
     #region make
@@ -59,14 +67,23 @@ public sealed record ShopkeepBrowsing(
         browsing = null;
         failReason = null;
         // location
-        if (location is FarmHouse)
-        {
-            failReason = I18n.FailReason_IsFarmHouse();
-            return false;
-        }
         if (location.ParentBuilding == null)
         {
             failReason = I18n.FailReason_NotFarmBuilding();
+            return false;
+        }
+        ShopkeepLocationData? shopkeepLocationData = AssetManager.GetShopkeepLocationData(
+            location.ParentBuilding.buildingType.Value
+        );
+        if (
+            shopkeepLocationData != null
+            && !GameStateQuery.CheckConditions(
+                shopkeepLocationData.Condition,
+                new(location, player, null, null, Random.Shared)
+            )
+        )
+        {
+            failReason = shopkeepLocationData.CantBeShopReason ?? I18n.FailReason_CantBeShop();
             return false;
         }
         if (location.Map == null)
@@ -88,6 +105,11 @@ public sealed record ShopkeepBrowsing(
         }
         Warp firstWarp = location.warps[0];
         Point entryPoint = new(firstWarp.X, firstWarp.Y - 1);
+        if (!Topology.IsTileStandable(location, entryPoint))
+        {
+            failReason = I18n.FailReason_WarpBlocked();
+            return false;
+        }
         List<Point> reachableTiles = Topology.TileStandableBFS(location, entryPoint);
         if (!reachableTiles.Any())
         {
@@ -107,6 +129,7 @@ public sealed record ShopkeepBrowsing(
                     furniture,
                     player,
                     reachableTiles,
+                    shopkeepLocationData,
                     out List<ForSaleTarget?>? ForSaleTargets
                 )
             )
@@ -153,7 +176,16 @@ public sealed record ShopkeepBrowsing(
             unreachableTableCount
         );
 
-        browsing = new(location, player, entryPoint, reachableTiles, customerActors, forSaleTables, bonusStats);
+        browsing = new(
+            location,
+            player,
+            entryPoint,
+            reachableTiles,
+            customerActors,
+            forSaleTables,
+            bonusStats,
+            shopkeepLocationData
+        );
         return true;
     }
     #endregion
@@ -278,6 +310,7 @@ public sealed record ShopkeepBrowsing(
         dispatchedActors.Add(nextActor);
         nextActor.currentLocation = Location;
         nextActor.setTileLocation(EntryPoint.ToVector2());
+        nextActor.faceDirection(0);
         Game1.playSound(AssetManager.DoorbellCue, 1100 + (int)(300 * Random.Shared.NextSingle()));
     }
 
@@ -333,6 +366,7 @@ public sealed record ShopkeepBrowsing(
         ModEntry.ProgressData?.SaveShopkeepSession(newLog, totalEarnings);
         return SessionReportMenu.Make(newLog);
     }
+
     #endregion
 
     #region draw

@@ -1,10 +1,15 @@
 {
   "CashRegister_Name": "Cash Register",
   "CashRegister_Desc": "A cash register for managing your own shop! Place it down in a farm building to use it.",
-  // default dialogues
+  // default haggle dialogues
   "Haggle_Ask": "How about {1}$ for {0}?",
   "Haggle_Compromise": "{1}$ is a little too much...$s",
   "Haggle_Overpriced": "{1}$!?! That's daylight robbery!$s",
   "Haggle_Fail": "I can't afford this...$s",
-  "Haggle_Success": "Deal! Here's {1}$.$h"
+  "Haggle_Success": "Deal! Here's {1}$.$h",
+  // default sold item dialogues
+  "Sold_Loved": "Hey @, thanks for getting me that {0} I love it! Tell me you got more in stock?$h",
+  "Sold_Liked": "The {0} you sold me the other day is pretty neat, might get another one later.$h",
+  "Sold_Neutral": "I ran out of {0} again, do you have any in stock at the shop?",
+  "Sold_Disliked": "I don't make buying {0} it a habit you know, you just caught me at a time of need.$s"
 }

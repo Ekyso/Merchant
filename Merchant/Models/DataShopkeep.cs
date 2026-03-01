@@ -1,5 +1,3 @@
-using Microsoft.Xna.Framework;
-
 namespace Merchant.Models;
 
 public sealed class ShopkeepLocationData
@@ -9,23 +7,25 @@ public sealed class ShopkeepLocationData
     public string? CantBeShopReason { get; set; } = null;
 
     // Theme
-    public List<ShopkeepThemeData> Themes { get; set; } = [];
+    public List<ShopkeepThemeBoostData> ThemedBoosts { get; set; } = [];
 }
 
-public sealed class ShopkeepThemeData
+public sealed class ShopkeepThemeBoostData
 {
     public string? Id
     {
         get =>
             field ??= string.Concat(
-                Bonus.ToString(),
+                Value.ToString(),
                 ":",
                 RequiredContextTags != null ? string.Join(',', RequiredContextTags) : "ANY"
             );
         set => field = value;
     } = null;
     public List<string>? RequiredContextTags { get; set; } = null;
-    public float Bonus { get; set; } = 0f;
-    public string? BonusBarTexture { get; set; } = null;
-    public Rectangle BonusBarSourceRect { get; set; } = Rectangle.Empty;
+    public float Value
+    {
+        get => field;
+        set => field = Math.Clamp(value, 0f, 0.5f);
+    } = 0f;
 }

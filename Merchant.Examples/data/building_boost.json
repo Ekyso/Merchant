@@ -1,0 +1,22 @@
+{
+  "$schema": "https://smapi.io/schemas/content-patcher.json",
+  "Changes": [
+    {
+      "Action": "EditData",
+      "Target": "mushymato.Merchant/ShopkeepLocations",
+      "TargetField": [
+        "Shed",
+        "ThemedBoosts"
+      ],
+      "Entries": {
+        "{{ModId}}_EggBoost": {
+          "Id": "{{ModId}}_EggBoost",
+          "RequiredContextTags": [
+            "egg_item"
+          ],
+          "Value": 0.2,
+        }
+      }
+    }
+  ]
+}

@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 using StardewValley.Extensions;
 using StardewValley.Menus;
+using StardewValley.Triggers;
 
 namespace Merchant.Management;
 
@@ -15,6 +16,7 @@ public sealed record ShopkeepHaggle(
     ForSaleTarget ForSale,
     float MinMult,
     float MaxMult,
+    float ThemeBoost,
     Func<float, float> PatternFn
 )
 {
@@ -22,16 +24,17 @@ public sealed record ShopkeepHaggle(
     public const float MAX_MULT = 1.5f;
 
     #region make
-    public static ShopkeepHaggle Make(Farmer player, CustomerActor buyer, ForSaleTarget forSaleTarget, float decorBonus)
+    public static ShopkeepHaggle Make(Farmer player, CustomerActor buyer, ForSaleTarget forSale, float decorBonus)
     {
         float minMult = MIN_MULT + decorBonus / 2f;
         float maxMult = MAX_MULT + decorBonus;
 
-        Func<float, float> PatternFn = Random.Shared.NextBool() ? Ease.InQuad : Ease.InOutQuad;
+        Func<float, float> patternFn = Random.Shared.NextBool() ? Ease.InQuad : Ease.InOutQuad;
 
-        ShopkeepHaggle newHaggle = new(player, buyer, forSaleTarget, minMult, maxMult, PatternFn);
+        ShopkeepHaggle newHaggle = new(player, buyer, forSale, minMult, maxMult, forSale.Boost?.Value ?? 0f, patternFn);
         newHaggle.SetNextDialogue(CustomerDialogueKind.Haggle_Ask, newHaggle.PntToPrice(newHaggle.targetPointer));
         newHaggle.CalculateBounds();
+        ModEntry.Log($"Theme Boost: {newHaggle.ThemeBoost}");
 
         return newHaggle;
     }
@@ -67,8 +70,10 @@ public sealed record ShopkeepHaggle(
     public readonly StateManager<HaggleState> state = new(HaggleState.Begin, nameof(HaggleState));
     public bool IsReadyToStart =>
         state.Current == HaggleState.Begin && haggleDialogueBox is DialogueBox { transitioning: false };
-    private float pointer = 0;
 
+    private float pointer = 0f;
+
+    public float periodMS = ModEntry.config.HaggleSpeed / (1f - ThemeBoost);
     public int Tries { get; private set; } = 0;
     private float targetPointer = Buyer.GetHaggleBaseTargetPointer(ForSale);
     private float targetOverRange = 0.1f + (0.15f + Buyer.GetHaggleTargetOverRange()) * Random.Shared.NextSingle();
@@ -77,7 +82,11 @@ public sealed record ShopkeepHaggle(
     private uint leewayPrice = 0;
     private float allowancePointer = -1f;
 
-    public uint PntToPrice(float pnt) => (uint)Math.Ceiling(Utility.Lerp(MinMult, MaxMult, pnt) * basePrice);
+    public uint PntToPrice(float pnt) =>
+        (uint)Math.Ceiling(Utility.Lerp(MinMult + ThemeBoost, MaxMult, pnt) * basePrice);
+
+    public float PntToXPos(float pnt) =>
+        Utility.Lerp(haggleBarSlideBounds.Left + ThemeBoost * haggleBarSlideWidth, haggleBarSlideBounds.Right, pnt);
 
     private int pointerPitch = -1;
     private ICue? pointerSound;
@@ -86,7 +95,7 @@ public sealed record ShopkeepHaggle(
     private void SetNextDialogue(CustomerDialogueKind kind, uint price, bool transitioning = false)
     {
         haggleDialogueBox = new DialogueBox(
-            Buyer.GetMerchantDialogue(dummySpeaker, kind, ForSale.Thing.DisplayName, price)
+            Buyer.GetHaggleDialogue(dummySpeaker, kind, ForSale.Thing.DisplayName, price)
         )
         {
             showTyping = false,
@@ -115,7 +124,7 @@ public sealed record ShopkeepHaggle(
         pointer = 0f;
         pointerPitch = -1;
         state.Current = HaggleState.Increase;
-        state.SetNext(HaggleState.Decrease, ModEntry.config.HaggleSpeed, State_DecreaseStart);
+        state.SetNext(HaggleState.Decrease, periodMS, State_DecreaseStart);
         Tries++;
     }
 
@@ -222,6 +231,18 @@ public sealed record ShopkeepHaggle(
         ForSale.Sold = SoldRecord.Make(Buyer.Name, pickedPrice, ForSale.Thing);
         Game1.playSound("reward");
         SetNextDialogue(CustomerDialogueKind.Haggle_Success, pickedPrice);
+        // mod integrations
+        // raise trigger
+        Item thing = ForSale.Thing;
+        thing.modData[GameDelegates.ModData_SoldPrice] = pickedPrice.ToString();
+        thing.modData[GameDelegates.ModData_SoldBuyer] = Buyer.Name;
+        TriggerActionManager.Raise(
+            GameDelegates.Merchant_Sold,
+            location: Buyer.currentLocation,
+            player: Player,
+            targetItem: thing
+        );
+        // queue up some npc dialogue
     }
 
     private void SetupHaggleFailed(uint pickedPrice)
@@ -238,7 +259,7 @@ public sealed record ShopkeepHaggle(
 
     private void State_DecreaseStart()
     {
-        state.SetNext(HaggleState.Begin, pickedPauseMS);
+        state.SetNext(HaggleState.Begin, periodMS);
     }
     #endregion
 
@@ -248,15 +269,20 @@ public sealed record ShopkeepHaggle(
     private const int haggleBarCapWidth = 24;
     private const int haggleBarSlideWidth = haggleBarTotalWidth - haggleBarIconWidth - haggleBarCapWidth;
     private const int haggleBarHeight = 96;
+
     private Vector2 haggleBarIconBoxPos = Vector2.Zero;
     private Vector2 haggleBarIconPos = Vector2.Zero;
     private Rectangle haggleBarSlideBounds = Rectangle.Empty;
+    private Rectangle haggleBarBoostedFillBounds = Rectangle.Empty;
     private Vector2 haggleBarCapPos = Vector2.Zero;
     private Vector2 targetPointerPos = Vector2.Zero;
     private Rectangle remainingTriesBounds = Rectangle.Empty;
     private Rectangle buyerMugShotRect = Buyer.sourceFriend.Npc.getMugShotSourceRect();
+    private Rectangle sourceRectHaggleBarIconBox = sourceRectHaggleBarNormalIconBox;
 
-    private static readonly Rectangle sourceRectHaggleBarIconBox = new(293, 360, 26, 24);
+    private static readonly Rectangle sourceRectHaggleBarNormalIconBox = new(293, 360, 26, 24);
+    private static readonly Rectangle sourceRectHaggleBarBoostedIconBox = new(163, 399, 26, 24);
+    private static readonly Rectangle sourceRectHaggleBarBoostedFill = new(432, 439, 9, 9);
     private static readonly Rectangle sourceRectHaggleBarSlide = new(319, 360, 1, 24);
     private static readonly Rectangle sourceRectHaggleBarCap = new(323, 360, 6, 24);
     private static readonly Rectangle sourceRectHagglePointerA = new(310, 392, 16, 16);
@@ -291,6 +317,22 @@ public sealed record ShopkeepHaggle(
         haggleBarCapPos = new(haggleBarIconBoxPos.X + haggleBarIconWidth + haggleBarSlideWidth, haggleBarIconBoxPos.Y);
         remainingTriesBounds = new(haggleBarSlideBounds.X, haggleBarSlideBounds.Y - 72, 196, 80);
 
+        if (ThemeBoost > 0)
+        {
+            sourceRectHaggleBarIconBox = sourceRectHaggleBarBoostedIconBox;
+            haggleBarBoostedFillBounds = new(
+                haggleBarSlideBounds.Left - 12,
+                haggleBarSlideBounds.Top + 16,
+                (int)MathF.Ceiling(ThemeBoost * (haggleBarSlideWidth + 12)),
+                64
+            );
+        }
+        else
+        {
+            sourceRectHaggleBarIconBox = sourceRectHaggleBarNormalIconBox;
+            haggleBarBoostedFillBounds = Rectangle.Empty;
+        }
+
         leewayPrice = (uint)Math.Ceiling(basePrice * buyerMugShotRect.Width * 2f / haggleBarSlideWidth);
 
         CalculateTargetPointerBounds();
@@ -299,9 +341,7 @@ public sealed record ShopkeepHaggle(
     private void CalculateTargetPointerBounds(bool useNextTargetPnt = false)
     {
         targetPointerPos = new(
-            Utility.Lerp(
-                haggleBarSlideBounds.X,
-                haggleBarSlideBounds.X + haggleBarSlideWidth,
+            PntToXPos(
                 useNextTargetPnt ? Utility.Lerp(nextTargetPointer, targetPointer, state.TimerProgress) : targetPointer
             )
                 - buyerMugShotRect.Width * 2,
@@ -372,11 +412,24 @@ public sealed record ShopkeepHaggle(
             SpriteEffects.None,
             1f
         );
+        // pointer boost
+        IClickableMenu.drawTextureBox(
+            b,
+            Game1.mouseCursors,
+            sourceRectHaggleBarBoostedFill,
+            haggleBarBoostedFillBounds.X,
+            haggleBarBoostedFillBounds.Y,
+            haggleBarBoostedFillBounds.Width,
+            haggleBarBoostedFillBounds.Height,
+            Color.White,
+            4,
+            false
+        );
 
         // allowance pointer
         if (allowancePointer > 0 && allowancePointer < 1)
         {
-            float allowancePos = haggleBarSlideBounds.X + allowancePointer * haggleBarSlideWidth;
+            float allowancePos = PntToXPos(allowancePointer);
             b.Draw(
                 Game1.mouseCursors,
                 new(allowancePos, haggleBarSlideBounds.Y + 30 + targetOverOrigin.Y * 2),
@@ -402,7 +455,7 @@ public sealed record ShopkeepHaggle(
             SpriteEffects.None,
             1f
         );
-        float pointerPos = haggleBarSlideBounds.X + pointer * haggleBarSlideWidth;
+        float pointerPos = PntToXPos(pointer);
         float rotate =
             state.Current == HaggleState.Picked && ForSale.Sold != null ? 4 * MathF.PI * state.TimerProgress : 0f;
         b.Draw(

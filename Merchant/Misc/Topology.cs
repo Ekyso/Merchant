@@ -52,7 +52,11 @@ public static class Topology
             yield return new(nextPoint.X, nextPoint.Y + 1);
     }
 
-    internal static bool IsTileStandable(GameLocation location, Point tile, CollisionMask collisionMask)
+    internal static bool IsTileStandable(
+        GameLocation location,
+        Point tile,
+        CollisionMask collisionMask = ~CollisionMask.Characters
+    )
     {
         return IsTilePassable(location, tile)
             && !IsWarp(location, tile)

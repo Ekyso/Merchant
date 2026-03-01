@@ -9,12 +9,21 @@
         "Dialogue"
       ],
       "Entries": {
-        "{{ModId}}_Haggle": {
-          "Ask": "Ask Price:{0} Item:{1}",
-          "Compromise": "Compromise Price:{0} Item:{1}",
-          "Overpriced": "Overpriced Price:{0} Item:{1}",
-          "Success": "Success Price:{0} Item:{1}",
-          "Fail": "Fail Price:{0} Item:{1}",
+        "{{ModId}}_Haggle_A": {
+          "Haggle_Ask": "A - Ask - Price - {0} - Item {1}",
+          "Haggle_Compromise": "A - Compromise - Price - {0} - Item {1}",
+          "Haggle_Overpriced": "A - Overpriced - Price - {0} - Item {1}",
+          "Haggle_Success": "A - Success - Price - {0} - Item {1}",
+          "Haggle_Fail": "A - Fail - Price - {0} - Item {1}",
+          "Extra1": "11111"
+        },
+        "{{ModId}}_Haggle_B": {
+          "Haggle_Ask": "B - Ask - Price - {0} - Item {1}",
+          "Haggle_Compromise": "B - Compromise - Price - {0} - Item {1}",
+          "Haggle_Overpriced": "B - Overpriced - Price - {0} - Item {1}",
+          "Haggle_Success": "B - Success - Price - {0} - Item {1}",
+          "Haggle_Fail": "B - Fail - Price - {0} - Item {1}",
+          "Extra1": "22222"
         }
       }
     }

@@ -77,7 +77,7 @@ internal class NPCFriendEntries(Farmer player)
 
     private List<FriendEntry> PopulateSortedNPCList()
     {
-        GameStateQueryContext context = new();
+        GameStateQueryContext context = new(null, null, null, null, Random.Shared);
         List<FriendEntry> newSortedList = [];
         Utility.ForEachVillager(npc =>
         {

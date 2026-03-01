@@ -37,15 +37,11 @@ public sealed class ShopkeepGame : IMinigame
     #endregion
 
     #region settings
-    public bool doMainGameUpdates() => haggling == null;
+    public bool doMainGameUpdates() => true;
 
     public string minigameId() => I18n.Minigame_Id();
 
     public bool overrideFreeMouseMovement() => true;
-
-    internal IClickableMenu? activeMenu = null;
-
-    private void ExitShopkeepGameMenu() => activeMenu = null;
 
     #endregion
 
@@ -211,13 +207,9 @@ public sealed class ShopkeepGame : IMinigame
     {
         Game1.PushUIMode();
         // Draw day time money box by itself
-        if (activeMenu == null)
+        if (Game1.activeClickableMenu == null)
         {
             Game1.dayTimeMoneyBox.draw(b);
-        }
-        else
-        {
-            activeMenu.draw(b);
         }
         // Draw Haggling
         haggling?.Draw(b);
@@ -227,13 +219,12 @@ public sealed class ShopkeepGame : IMinigame
     public bool tick(GameTime time)
     {
         // general updates
-        if (activeMenu != null)
+        if (Game1.activeClickableMenu != null)
         {
             Game1.PushUIMode();
-            activeMenu.update(time);
-            activeMenu.performHoverAction(Game1.getMouseX(), Game1.getMouseY());
+            Game1.activeClickableMenu.performHoverAction(Game1.getMouseX(), Game1.getMouseY());
             Game1.PopUIMode();
-            if (activeMenu is ConfirmationDialog)
+            if (Game1.activeClickableMenu is ConfirmationDialog)
                 return false;
         }
         else if (haggling?.haggleDialogueBox != null)
@@ -300,8 +291,7 @@ public sealed class ShopkeepGame : IMinigame
     {
         Game1.stopMusicTrack(MusicContext.MiniGame);
         Game1.changeMusicTrack("harveys_theme_jazz", false, MusicContext.MiniGame);
-        activeMenu = browsing.Finalize();
-        activeMenu?.exitFunction = ExitShopkeepGameMenu;
+        Game1.activeClickableMenu = browsing.Finalize();
         state.SetAndLock(GameLoopState.Report);
     }
 
@@ -384,7 +374,7 @@ public sealed class ShopkeepGame : IMinigame
     #region gameloop report
     private void DoReport(GameTime time)
     {
-        if (activeMenu == null)
+        if (Game1.activeClickableMenu == null)
         {
             state.Unlock();
             state.SetAndLock(GameLoopState.Unload);
@@ -396,18 +386,18 @@ public sealed class ShopkeepGame : IMinigame
     #region inputs
     public void receiveLeftClick(int x, int y, bool playSound = true)
     {
-        if (activeMenu is not null)
+        if (Game1.activeClickableMenu is not null)
         {
             int mouseX = Game1.getMouseX();
             int mouseY = Game1.getMouseY();
-            if (activeMenu.isWithinBounds(mouseX, mouseY))
+            if (Game1.activeClickableMenu.isWithinBounds(mouseX, mouseY))
             {
-                activeMenu.receiveLeftClick(mouseX, mouseY, playSound);
+                Game1.activeClickableMenu.receiveLeftClick(mouseX, mouseY, playSound);
             }
             else
             {
-                activeMenu.exitThisMenu();
-                activeMenu = null;
+                Game1.activeClickableMenu.exitThisMenu();
+                Game1.activeClickableMenu = null;
             }
         }
         else if (state.Current == GameLoopState.Haggle)
@@ -423,9 +413,9 @@ public sealed class ShopkeepGame : IMinigame
 
     public void receiveRightClick(int x, int y, bool playSound = true)
     {
-        if (activeMenu is not null)
+        if (Game1.activeClickableMenu is not null)
         {
-            activeMenu.receiveRightClick(Game1.getMouseX(), Game1.getMouseY(), playSound);
+            Game1.activeClickableMenu.receiveRightClick(Game1.getMouseX(), Game1.getMouseY(), playSound);
         }
         else if (state.Current == GameLoopState.Haggle)
         {
@@ -435,9 +425,9 @@ public sealed class ShopkeepGame : IMinigame
 
     public void receiveKeyPress(Keys k)
     {
-        if (activeMenu is not null)
+        if (Game1.activeClickableMenu is not null)
         {
-            activeMenu.receiveKeyPress(k);
+            Game1.activeClickableMenu.receiveKeyPress(k);
             return;
         }
 
@@ -458,10 +448,7 @@ public sealed class ShopkeepGame : IMinigame
             }
             else if (state.Current != GameLoopState.Haggle)
             {
-                activeMenu = new ConfirmationDialog(I18n.QuitConfirm(), ConfirmForceQuit)
-                {
-                    exitFunction = ExitShopkeepGameMenu,
-                };
+                Game1.activeClickableMenu = new ConfirmationDialog(I18n.QuitConfirm(), ConfirmForceQuit);
             }
         }
     }

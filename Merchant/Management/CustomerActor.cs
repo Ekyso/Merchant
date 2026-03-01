@@ -1,6 +1,7 @@
 using Merchant.Misc;
 using Merchant.Models;
 using Microsoft.Xna.Framework;
+using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Extensions;
 using StardewValley.Pathfinding;
@@ -30,7 +31,7 @@ public sealed class CustomerActor : NPC
         forceOneTileWide.Value = true;
         followSchedule = false;
         EventActor = true;
-        state = new(ActorState.Await, $"{nameof(ActorState)}[${sourceFriend.Npc.Name}]");
+        state = new(ActorState.Await, $"{nameof(ActorState)}[{sourceFriend.Npc.Name}]");
     }
     #endregion
 
@@ -48,12 +49,12 @@ public sealed class CustomerActor : NPC
         portraitOverridden = true,
     };
 
-    public Dialogue GetMerchantDialogue(NPC dummySpeaker, CustomerDialogueKind kind, params object[] substitutions)
+    public Dialogue GetHaggleDialogue(NPC dummySpeaker, CustomerDialogueKind kind, params object[] substitutions)
     {
         dummySpeaker.Name = sourceFriend.Npc.Name;
         dummySpeaker.Portrait = sourceFriend.Npc.Portrait;
         dummySpeaker.displayName = sourceFriend.Npc.displayName;
-        if (sourceFriend.CxData?.TryGetCustomerDialogue(kind, out string? dialogueText) ?? false)
+        if (sourceFriend.CxData?.TryGetDialogueText(kind, out string? dialogueText) ?? false)
         {
             return new Dialogue(
                 dummySpeaker,
@@ -131,6 +132,7 @@ public sealed class CustomerActor : NPC
     }
 
     private readonly StateManager<ActorState> state;
+    private TimeSpan moveStateTimeout = TimeSpan.Zero;
 
     private readonly float chanceToBuy = 0.2f + 0.3f * Random.Shared.NextSingle();
     private int browsedCount = 0;
@@ -227,6 +229,7 @@ public sealed class CustomerActor : NPC
             ForSale = nextForSale;
 
             state.Current = ActorState.Move;
+            moveStateTimeout = TimeSpan.FromSeconds(30);
             (Point endPoint, int facing) = Random.Shared.ChooseFrom(ForSale.BrowseAround);
             controller = new PathFindController(this, currentLocation, endPoint, facing, ReachedForSaleItem);
         }
@@ -284,6 +287,28 @@ public sealed class CustomerActor : NPC
     public override void update(GameTime time, GameLocation location)
     {
         base.update(time, location);
+        if (moveStateTimeout > TimeSpan.Zero)
+        {
+            moveStateTimeout -= time.ElapsedGameTime;
+            if (moveStateTimeout <= TimeSpan.Zero && state.Current == ActorState.Move)
+            {
+                ModEntry.Log($"Actor '{Name}' stuck in Move for 30s+, do force unstuck.", LogLevel.Warn);
+                moveStateTimeout = TimeSpan.Zero;
+                if (ForSale == null)
+                {
+                    LeavingTheShop();
+                }
+                else
+                {
+                    controller = null;
+                    state.Current = ActorState.Considering;
+                    (Point endPoint, int facing) = Random.Shared.ChooseFrom(ForSale.BrowseAround);
+                    setTilePosition(endPoint);
+                    faceDirection(facing);
+                    ReachedForSaleItem(this, currentLocation);
+                }
+            }
+        }
         // controller updates from vanilla
         if (!Game1.IsMasterGame)
         {

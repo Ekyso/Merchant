@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Merchant.Misc;
+using Merchant.Models;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Objects;
@@ -12,6 +13,7 @@ public interface ITableShim
         Furniture table,
         Farmer player,
         List<Point> reachableTiles,
+        ShopkeepLocationData? shopkeepLocationData,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     );
     bool TryRemoveItemFromTable(Furniture table, Item item);
@@ -25,11 +27,12 @@ public sealed class TableShimVanilla : ITableShim
         Furniture table,
         Farmer player,
         List<Point> reachableTiles,
+        ShopkeepLocationData? shopkeepLocationData,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     )
     {
         forSaleTargets = null;
-        if (!table.IsTable() || table.heldObject.Value == null)
+        if (!table.IsTable() || table.heldObject.Value is not SObject heldObj)
         {
             return false;
         }
@@ -42,8 +45,21 @@ public sealed class TableShimVanilla : ITableShim
         List<(Point, int)> browseAround = Topology.FormBrowseAround(boundingBox, reachableTiles);
         bool unreachable = !browseAround.Any();
 
-        if (ForSaleTarget.CanOfferForSale(table.heldObject.Value, player))
+        if (ForSaleTarget.CanOfferForSale(heldObj, player))
         {
+            ShopkeepThemeBoostData? boost = null;
+            if (shopkeepLocationData != null && shopkeepLocationData.ThemedBoosts != null)
+            {
+                foreach (ShopkeepThemeBoostData curBoost in shopkeepLocationData.ThemedBoosts)
+                {
+                    if (curBoost.RequiredContextTags?.All(heldObj.HasContextTag) ?? false)
+                    {
+                        boost = curBoost;
+                        break;
+                    }
+                }
+            }
+
             if (unreachable)
             {
                 forSaleTargets = [null];
@@ -51,7 +67,7 @@ public sealed class TableShimVanilla : ITableShim
             }
             else
             {
-                forSaleTargets = [new(table.heldObject.Value, table, browseAround)];
+                forSaleTargets = [new(heldObj, table, browseAround, boost)];
                 return true;
             }
         }
