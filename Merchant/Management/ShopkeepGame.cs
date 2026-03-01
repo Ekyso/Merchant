@@ -291,7 +291,7 @@ public sealed class ShopkeepGame : IMinigame
     {
         Game1.stopMusicTrack(MusicContext.MiniGame);
         Game1.changeMusicTrack("harveys_theme_jazz", false, MusicContext.MiniGame);
-        Game1.activeClickableMenu = browsing.Finalize();
+        Game1.activeClickableMenu = browsing.FinalizeAndReport();
         state.SetAndLock(GameLoopState.Report);
     }
 

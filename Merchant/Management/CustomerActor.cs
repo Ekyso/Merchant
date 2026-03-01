@@ -31,6 +31,7 @@ public sealed class CustomerActor : NPC
         forceOneTileWide.Value = true;
         followSchedule = false;
         EventActor = true;
+        collidesWithOtherCharacters.Value = false;
         state = new(ActorState.Await, $"{nameof(ActorState)}[{sourceFriend.Npc.Name}]");
     }
     #endregion

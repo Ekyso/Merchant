@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Objects;
+using StardewValley.SpecialOrders;
 using StardewValley.Triggers;
 
 namespace Merchant.Management;
@@ -31,17 +32,13 @@ public record ForSaleTarget(
                 return;
             field = value;
             HeldBy = null;
-            ModEntry.tableShim.TryRemoveItemFromTable(Table, Thing);
+            ModEntry.tableShim.TryRemoveItemFromTable(Table, Thing, Idx);
         }
     }
 
-    public static bool CanOfferForSale(Item? item, Farmer player)
+    public static bool CanOfferForSale([NotNullWhen(true)] Item? item, Farmer player)
     {
-        return item != null
-            && item is SObject obj
-            && !obj.bigCraftable.Value
-            && item is not Furniture
-            && item.sellToStorePrice(player.UniqueMultiplayerID) > 0;
+        return item != null && item.canBeShipped() && item.sellToStorePrice(player.UniqueMultiplayerID) > 0;
     }
 }
 
@@ -52,8 +49,7 @@ public sealed record ShopkeepBrowsing(
     List<Point> ReachableTiles,
     List<CustomerActor> CustomerActors,
     List<ForSaleTarget> ForSaleTargets,
-    ShopBonusStats ShopBonus,
-    ShopkeepLocationData? ShopkeepLocationData
+    ShopBonusStats ShopBonus
 )
 {
     #region make
@@ -119,7 +115,7 @@ public sealed record ShopkeepBrowsing(
 
         // shop layout and for sale items
         int floorDecorCount = 0;
-        int standingDecorCount = 0;
+        int standingDecorCount = location.objects.Values.Count(SObjectIsDecor);
         int unreachableTableCount = 0;
         List<ForSaleTarget> forSaleTables = [];
         foreach (Furniture furniture in location.furniture)
@@ -173,20 +169,17 @@ public sealed record ShopkeepBrowsing(
             forSaleTables.Count,
             floorDecorCount,
             mapTileCount,
-            unreachableTableCount
-        );
-
-        browsing = new(
-            location,
-            player,
-            entryPoint,
-            reachableTiles,
-            customerActors,
-            forSaleTables,
-            bonusStats,
+            unreachableTableCount,
             shopkeepLocationData
         );
+
+        browsing = new(location, player, entryPoint, reachableTiles, customerActors, forSaleTables, bonusStats);
         return true;
+    }
+
+    private static bool SObjectIsDecor(SObject obj)
+    {
+        return obj.IsScarecrow() || obj is IndoorPot or Fence or MiniJukebox or Mannequin;
     }
     #endregion
 
@@ -320,7 +313,7 @@ public sealed record ShopkeepBrowsing(
         dispatchedActors.Clear();
     }
 
-    internal SessionReportMenu? Finalize()
+    internal SessionReportMenu? FinalizeAndReport()
     {
         List<SoldRecord> sales = [];
         StringBuilder sb = new("===== SOLD =====");
@@ -328,22 +321,14 @@ public sealed record ShopkeepBrowsing(
         ulong totalEarnings = 0;
         foreach (ForSaleTarget forSale in ForSaleTargets)
         {
-            if (forSale.Sold != null)
-            {
-                sales.Add(forSale.Sold);
-                totalEarnings += forSale.Sold.Price;
-                Item thing = forSale.Thing;
-                Game1.stats.ItemsShipped += (uint)thing.Stack;
-                if (thing.Category == -75 || thing.Category == -79)
-                {
-                    Game1.stats.CropsShipped += (uint)thing.Stack;
-                }
-                if (thing is SObject obj && obj.countsForShippedCollection())
-                {
-                    Player.shippedBasic(obj.ItemId, obj.Stack);
-                }
-                sb.Append($"\n- {forSale.Thing.DisplayName} {forSale.Sold}");
-            }
+            if (forSale.Sold == null)
+                continue;
+
+            sales.Add(forSale.Sold);
+            totalEarnings += forSale.Sold.Price;
+            ApplyShippedBehaviors(forSale, (int)forSale.Sold.Price);
+
+            sb.Append($"\n- {forSale.Thing.DisplayName} {forSale.Sold}");
         }
 
         if (sales.Count <= 0)
@@ -365,6 +350,27 @@ public sealed record ShopkeepBrowsing(
         };
         ModEntry.ProgressData?.SaveShopkeepSession(newLog, totalEarnings);
         return SessionReportMenu.Make(newLog);
+    }
+
+    private void ApplyShippedBehaviors(ForSaleTarget forSale, int price)
+    {
+        Item thing = forSale.Thing;
+        Game1.stats.ItemsShipped += (uint)thing.Stack;
+        if (thing.Category == -75 || thing.Category == -79)
+        {
+            Game1.stats.CropsShipped += (uint)thing.Stack;
+        }
+        if (thing is SObject obj && obj.countsForShippedCollection())
+        {
+            Player.shippedBasic(obj.ItemId, obj.Stack);
+        }
+        if (Player.team.specialOrders != null)
+        {
+            foreach (SpecialOrder specialOrder2 in Player.team.specialOrders)
+            {
+                specialOrder2.onItemShipped?.Invoke(Player, forSale.Thing, price);
+            }
+        }
     }
 
     #endregion

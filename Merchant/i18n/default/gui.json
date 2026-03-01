@@ -23,6 +23,7 @@
   "bonus.rug-floor.values": "{{decor}} covered tiles / {{tiles}} total tiles ({{percent}}{{capped}})",
   "bonus.capped": " =",
   "bonus.total": "Total: {{minBonus}}x - {{maxMult}}x",
+  "bonus.theme-boost": "Shop Themes:",
   "quit-confirm": "Close up the shop early?",
   "hover.bought-by": "Bought by {{chara}}.",
 }

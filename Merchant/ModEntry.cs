@@ -8,6 +8,8 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
 using StardewValley;
+using StardewValley.Objects;
+using StardewValley.Triggers;
 
 namespace Merchant;
 
@@ -27,7 +29,9 @@ public sealed class ModEntry : Mod
     private static readonly PerScreen<NPCFriendEntries?> friendEntries = new();
     internal static NPCFriendEntries FriendEntries => friendEntries.Value ??= new NPCFriendEntries(Game1.player);
 
-    internal static ITableShim tableShim = new TableShimVanilla();
+    internal static bool HasBETAS = false;
+
+    internal static ITableShim tableShim = new TableShimBase();
 
     public override void Entry(IModHelper helper)
     {
@@ -73,7 +77,15 @@ public sealed class ModEntry : Mod
             config.Register(ModManifest, gmcm);
         }
 
-        // ffApi = Helper.ModRegistry.GetApi<IFurnitureFrameworkAPI>("leroymilo.FurnitureFramework");
+        if (
+            Helper.ModRegistry.GetApi<IFurnitureFrameworkAPI>("leroymilo.FurnitureFramework")
+            is IFurnitureFrameworkAPI ffApi
+        )
+        {
+            tableShim = new TableShimFF(ffApi);
+        }
+
+        HasBETAS = Helper.ModRegistry.IsLoaded("Spiderbuttons.BETAS");
     }
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)

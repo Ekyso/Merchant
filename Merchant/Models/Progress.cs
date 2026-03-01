@@ -67,13 +67,14 @@ public sealed class ShopkeepSessionLog
 
 public sealed class MerchantProgressData
 {
+    private const string Stat_Sessions = $"{ModEntry.ModId}_ShopkeepSessions";
+    private const string Stat_Earnings = $"{ModEntry.ModId}_ShopkeepEarnings";
     private string key = "merchant";
     internal ulong TotalEarnings { get; set; } = 0;
-    internal uint TotalItemsSold { get; set; } = 0;
 
     public List<ShopkeepSessionLog> Logs { get; set; } = [];
 
-    private void Validate()
+    private void FinishLoading()
     {
         foreach (ShopkeepSessionLog log in Logs)
         {
@@ -85,6 +86,8 @@ public sealed class MerchantProgressData
             if (!log.IsAutoShopkeep)
                 TotalEarnings += totalEarnings;
         }
+        Game1.player.stats.Set(Stat_Sessions, Logs.Count);
+        Game1.player.stats.Set(Stat_Earnings, (uint)TotalEarnings);
     }
 
     public static MerchantProgressData Read()
@@ -93,7 +96,7 @@ public sealed class MerchantProgressData
         ModEntry.Log($"Read progress data '{key}'");
         MerchantProgressData saveData = ModEntry.help.Data.ReadGlobalData<MerchantProgressData>(key) ?? new();
         saveData.key = key;
-        saveData.Validate();
+        saveData.FinishLoading();
         return saveData;
     }
 
@@ -108,6 +111,8 @@ public sealed class MerchantProgressData
         if (!newLog.IsAutoShopkeep)
             TotalEarnings += totalEarnings;
         Logs.Add(newLog);
+        Game1.player.stats.Set(Stat_Sessions, Logs.Count);
+        Game1.player.stats.Set(Stat_Earnings, (uint)TotalEarnings);
         return newLog;
     }
 

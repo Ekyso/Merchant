@@ -1,5 +1,6 @@
 using System.Text;
 using Merchant.Management;
+using StardewValley.TokenizableStrings;
 
 namespace Merchant.Models;
 
@@ -8,7 +9,8 @@ public sealed record ShopBonusStats(
     int TableCount,
     int FloorDecorCount,
     int MapTileCount,
-    int UnreachableTableCount
+    int UnreachableTableCount,
+    ShopkeepLocationData? ShopkeepData
 )
 {
     private const float FLOOR_COVERAGE_TARGET = 1 / 3f;
@@ -19,15 +21,16 @@ public sealed record ShopBonusStats(
     );
     public float TotalBonus => StandingDecorBonus * 0.7f + FloorCoverageBonusRaw * 0.3f;
 
+    private const string LINEBREAK = "  ^--------------------------------------------------";
+
     public string FormatSummary()
     {
         StringBuilder sb = new();
         sb.Append(I18n.Bonus_Title());
-        sb.Append("  ^");
-        sb.Append("--------------------------------------------------");
-        sb.Append("  ^");
+        sb.Append(LINEBREAK);
+        sb.Append('^');
         sb.Append(I18n.Bonus_Decor());
-        sb.Append("  ^  ");
+        sb.Append("^  ");
         sb.Append(
             I18n.Bonus_Decor_Values(
                 StandingDecorCount,
@@ -38,13 +41,13 @@ public sealed record ShopBonusStats(
         );
         if (UnreachableTableCount > 0)
         {
-            sb.Append("  ^");
+            sb.Append('^');
             sb.Append(I18n.Bonus_UnreachableTable(UnreachableTableCount));
-            sb.Append("  ^  ");
+            sb.Append("^  ");
         }
-        sb.Append("  ^");
+        sb.Append('^');
         sb.Append(I18n.Bonus_RugFloor());
-        sb.Append("  ^  ");
+        sb.Append("^  ");
         sb.Append(
             I18n.Bonus_RugFloor_Values(
                 FloorDecorCount,
@@ -53,7 +56,7 @@ public sealed record ShopBonusStats(
                 FloorCoverageBonusRaw >= 1f ? I18n.Bonus_Capped() : ""
             )
         );
-        sb.Append("  ^");
+        sb.Append('^');
         float totalBonus = TotalBonus;
         sb.Append(
             I18n.Bonus_Total(
@@ -61,6 +64,21 @@ public sealed record ShopBonusStats(
                 $"{totalBonus + ShopkeepHaggle.MAX_MULT:0.00}"
             )
         );
+        if (ShopkeepData != null && ShopkeepData.ThemedBoosts.Count > 0)
+        {
+            sb.Append(LINEBREAK);
+            sb.Append('^');
+            sb.Append(I18n.Bonus_ThemeBoost());
+            foreach (ShopkeepThemeBoostData boost in ShopkeepData.ThemedBoosts)
+            {
+                sb.Append("^  ");
+                if (TokenParser.ParseText(boost.Description) is string desc)
+                    sb.Append(desc);
+                else
+                    sb.Append(boost.ToString());
+            }
+        }
+
         return sb.ToString();
     }
 }

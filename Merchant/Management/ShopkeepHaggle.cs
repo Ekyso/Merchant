@@ -3,7 +3,9 @@ using Merchant.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
+using StardewModdingAPI;
 using StardewValley;
+using StardewValley.Delegates;
 using StardewValley.Extensions;
 using StardewValley.Menus;
 using StardewValley.Triggers;
@@ -221,8 +223,8 @@ public sealed record ShopkeepHaggle(
     {
         if (state.Current == HaggleState.Picked)
             return;
-
-        SetupHaggleSuccess(PntToPrice(0f));
+        pointer = targetPointer / 2;
+        SetupHaggleSuccess(PntToPrice(pointer));
     }
 
     private void SetupHaggleSuccess(uint pickedPrice)
@@ -231,8 +233,7 @@ public sealed record ShopkeepHaggle(
         ForSale.Sold = SoldRecord.Make(Buyer.Name, pickedPrice, ForSale.Thing);
         Game1.playSound("reward");
         SetNextDialogue(CustomerDialogueKind.Haggle_Success, pickedPrice);
-        // mod integrations
-        // raise trigger
+        // mod triggers
         Item thing = ForSale.Thing;
         thing.modData[GameDelegates.ModData_SoldPrice] = pickedPrice.ToString();
         thing.modData[GameDelegates.ModData_SoldBuyer] = Buyer.Name;
@@ -242,7 +243,6 @@ public sealed record ShopkeepHaggle(
             player: Player,
             targetItem: thing
         );
-        // queue up some npc dialogue
     }
 
     private void SetupHaggleFailed(uint pickedPrice)
