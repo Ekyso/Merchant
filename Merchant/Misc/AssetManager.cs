@@ -16,6 +16,7 @@ internal static class AssetManager
     private const string Asset_TextureCraftables = $"{ModEntry.ModId}/craftables";
     internal const string Asset_Strings = $"{ModEntry.ModId}\\Strings";
     internal const string Asset_CustomerData = $"{ModEntry.ModId}/Customers";
+    internal const string Asset_ShopLocations = $"{ModEntry.ModId}/ShopLocations";
     internal const string CashRegisterId = $"{ModEntry.ModId}_CashRegister";
     internal const string CashRegisterQId = $"(BC){ModEntry.ModId}_CashRegister";
     internal const string ContextTag_CashRegister = $"{ModEntry.ModId}_cash_register";
@@ -65,10 +66,6 @@ internal static class AssetManager
         {
             e.Edit(Edit_Machines, AssetEditPriority.Default);
         }
-        else if (name.IsEquivalentTo(Asset_TextureCraftables))
-        {
-            e.LoadFromModFile<Texture2D>("assets/craftables.png", AssetLoadPriority.Low);
-        }
         else if (name.IsEquivalentTo("Data/Shops"))
         {
             e.Edit(Edit_Shops, AssetEditPriority.Default);
@@ -77,6 +74,14 @@ internal static class AssetManager
         {
             e.Edit(Edit_AudioChanges, AssetEditPriority.Default);
         }
+        else if (name.IsEquivalentTo(Asset_ShopLocations))
+        {
+            e.LoadFromModFile<Dictionary<string, ShopkeepLocationData>>(
+                            "assets/data_shopkeep_locations.json",
+                            AssetLoadPriority.Exclusive
+                        );
+            e.Edit(Edit_CustomerData, AssetEditPriority.Early - 100);
+        }
         else if (name.IsEquivalentTo(Asset_CustomerData))
         {
             e.LoadFromModFile<Dictionary<string, CustomerData>>(
@@ -84,6 +89,10 @@ internal static class AssetManager
                 AssetLoadPriority.Exclusive
             );
             e.Edit(Edit_CustomerData, AssetEditPriority.Early - 100);
+        }
+        else if (name.IsEquivalentTo(Asset_TextureCraftables))
+        {
+            e.LoadFromModFile<Texture2D>("assets/craftables.png", AssetLoadPriority.Low);
         }
         else if (name.IsEquivalentTo(Asset_Strings))
         {
@@ -118,16 +127,23 @@ internal static class AssetManager
             Id = DoorbellCue,
             FilePaths =
             [
-                Path.Combine(ModEntry.help.DirectoryPath, "assets", "doorbell01.ogg"),
-                Path.Combine(ModEntry.help.DirectoryPath, "assets", "doorbell02.ogg"),
-                Path.Combine(ModEntry.help.DirectoryPath, "assets", "doorbell03.ogg"),
-                Path.Combine(ModEntry.help.DirectoryPath, "assets", "doorbell04.ogg"),
+                Path.Combine(ModEntry.help.DirectoryPath, "assets", "sfx_doorbell01.ogg"),
+                Path.Combine(ModEntry.help.DirectoryPath, "assets", "sfx_doorbell02.ogg"),
+                Path.Combine(ModEntry.help.DirectoryPath, "assets", "sfx_doorbell03.ogg"),
+                Path.Combine(ModEntry.help.DirectoryPath, "assets", "sfx_doorbell04.ogg"),
             ],
             Category = "Sound",
             StreamedVorbis = false,
             Looped = false,
             UseReverb = true,
         };
+    }
+
+    private static void Edit_Shops(IAssetData asset)
+    {
+        IDictionary<string, ShopData> data = asset.AsDictionary<string, ShopData>().Data;
+        if (data.ContainsKey("Carpenter"))
+            data["Carpenter"].Items.Add(new() { Id = CashRegisterQId, ItemId = CashRegisterQId });
     }
 
     public static void Edit_Machines(IAssetData asset)
@@ -154,12 +170,5 @@ internal static class AssetManager
             ContextTags = [ContextTag_CashRegister],
             CustomFields = null,
         };
-    }
-
-    private static void Edit_Shops(IAssetData asset)
-    {
-        IDictionary<string, ShopData> data = asset.AsDictionary<string, ShopData>().Data;
-        if (data.ContainsKey("Carpenter"))
-            data["Carpenter"].Items.Add(new() { Id = CashRegisterQId, ItemId = CashRegisterQId });
     }
 }

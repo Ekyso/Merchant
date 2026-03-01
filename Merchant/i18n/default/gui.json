@@ -14,7 +14,7 @@
   "menu.start-minigame": "Open the Shop",
   "menu.check-bonus": "Decor Bonuses",
   "menu.session-log": "Report of Session ({{idx}})",
-  "bonus.title": "By decorating your store, you can sell items for higher prices!",
+  "bonus.title": "Decorate your store to sell for higher prices!",
   "bonus.decor": "Decor:",
   "bonus.decor.values": "{{decor}} decorations / {{table}} tables ({{percent}}{{capped}})",
   "bonus.unreachable-table": "WARNING: You have {{count}} unreachable tables that hold a sellable item.",

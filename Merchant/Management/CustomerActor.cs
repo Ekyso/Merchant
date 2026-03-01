@@ -8,22 +8,12 @@ using StardewValley.TokenizableStrings;
 
 namespace Merchant.Management;
 
-public enum CxDialogueKind
-{
-    Haggle_Ask,
-    Haggle_Compromise,
-    Haggle_Overpriced,
-    Haggle_Fail,
-    Haggle_Success,
-}
-
 public sealed class CustomerActor : NPC
 {
     internal static readonly Event BogusEvent = new();
     #region make
     private readonly Point entryPoint;
     internal readonly FriendEntry sourceFriend;
-    internal readonly HaggleDialogue? haggleDialogue;
     internal bool HaggleEnabled = true;
 
     public CustomerActor(FriendEntry sourceFriend, Point entryPoint)
@@ -40,10 +30,6 @@ public sealed class CustomerActor : NPC
         forceOneTileWide.Value = true;
         followSchedule = false;
         EventActor = true;
-        if (sourceFriend.CxData?.HaggleDialogue?.Count > 0)
-        {
-            haggleDialogue = Random.Shared.ChooseFrom(sourceFriend.CxData.HaggleDialogue.Values.ToList());
-        }
         state = new(ActorState.Await, $"{nameof(ActorState)}[${sourceFriend.Npc.Name}]");
     }
     #endregion
@@ -62,30 +48,18 @@ public sealed class CustomerActor : NPC
         portraitOverridden = true,
     };
 
-    public Dialogue GetMerchantDialogue(NPC dummySpeaker, CxDialogueKind kind, params object[] substitutions)
+    public Dialogue GetMerchantDialogue(NPC dummySpeaker, CustomerDialogueKind kind, params object[] substitutions)
     {
         dummySpeaker.Name = sourceFriend.Npc.Name;
         dummySpeaker.Portrait = sourceFriend.Npc.Portrait;
         dummySpeaker.displayName = sourceFriend.Npc.displayName;
-        if (haggleDialogue != null)
+        if (sourceFriend.CxData?.TryGetCustomerDialogue(kind, out string? dialogueText) ?? false)
         {
-            string? dialogue = kind switch
-            {
-                CxDialogueKind.Haggle_Ask => haggleDialogue.Ask,
-                CxDialogueKind.Haggle_Compromise => haggleDialogue.Compromise,
-                CxDialogueKind.Haggle_Overpriced => haggleDialogue.Overpriced,
-                CxDialogueKind.Haggle_Success => haggleDialogue.Success,
-                CxDialogueKind.Haggle_Fail => haggleDialogue.Fail,
-                _ => null,
-            };
-            if (dialogue != null)
-            {
-                return new Dialogue(
-                    dummySpeaker,
-                    string.Concat(AssetManager.Asset_Strings, ":", kind.ToString()),
-                    string.Format(TokenParser.ParseText(dialogue) ?? dialogue, substitutions)
-                );
-            }
+            return new Dialogue(
+                dummySpeaker,
+                string.Concat(AssetManager.Asset_Strings, ":", kind.ToString()),
+                string.Format(TokenParser.ParseText(dialogueText) ?? dialogueText, substitutions)
+            );
         }
         return new Dialogue(
             dummySpeaker,

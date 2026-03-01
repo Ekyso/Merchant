@@ -6,7 +6,7 @@
       "Target": "mushymato.Merchant/Customers",
       "TargetField": [
         "Robin",
-        "HaggleDialogue"
+        "Dialogue"
       ],
       "Entries": {
         "{{ModId}}_Haggle": {
