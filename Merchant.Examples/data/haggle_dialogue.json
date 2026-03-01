@@ -1,0 +1,22 @@
+{
+  "$schema": "https://smapi.io/schemas/content-patcher.json",
+  "Changes": [
+    {
+      "Action": "EditData",
+      "Target": "mushymato.Merchant/Customers",
+      "TargetField": [
+        "Robin",
+        "HaggleDialogue"
+      ],
+      "Entries": {
+        "{{ModId}}_Haggle": {
+          "Ask": "Ask Price:{0} Item:{1}",
+          "Compromise": "Compromise Price:{0} Item:{1}",
+          "Overpriced": "Overpriced Price:{0} Item:{1}",
+          "Success": "Success Price:{0} Item:{1}",
+          "Fail": "Fail Price:{0} Item:{1}",
+        }
+      }
+    }
+  ]
+}

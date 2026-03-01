@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using Merchant.Management;
 using Merchant.Models;
+using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Delegates;
 
@@ -31,15 +33,18 @@ internal class NPCFriendEntries(Farmer player)
 
     internal void Clear() => sorted = null;
 
-    private IEnumerable<FriendEntry> PickNRandomNPCs(int count, bool bestFriendsOnly)
+    private void PickNRandomNPCs(ref List<CustomerActor> picked, Point entryPoint, int count, bool bestFriendsOnly)
     {
+        if (count <= 0)
+            return;
+
         sorted ??= PopulateSortedNPCList();
 
         List<int> ranges;
         if (bestFriendsOnly)
         {
             if (bisect == sorted.Count)
-                yield break;
+                return;
             ranges = Enumerable.Range(bisect, sorted.Count - bisect).ToList();
         }
         else
@@ -47,34 +52,27 @@ internal class NPCFriendEntries(Farmer player)
             ranges = Enumerable.Range(0, bisect).ToList();
         }
         if (ranges.Count == 0)
-            yield break;
+            return;
 
         Random.Shared.ShuffleInPlace(ranges);
         for (int i = 0; i < Math.Min(ranges.Count, count); i++)
         {
             FriendEntry friend = sorted[ranges[i]];
             if (!friend.Npc.IsInvisible)
-                yield return sorted[ranges[i]];
+            {
+                picked.Add(new(friend, entryPoint));
+            }
         }
     }
 
-    internal IEnumerable<FriendEntry> PickCustomerNPCs(int maxCount)
+    internal List<CustomerActor> MakeCustomerActors(int maxCount, Point entryPoint)
     {
         int bffs = maxCount / 3;
-        foreach (FriendEntry npc in PickNRandomNPCs(bffs, true))
-        {
-            maxCount--;
-            yield return npc;
-            if (maxCount == 0)
-                yield break;
-        }
-        foreach (FriendEntry npc in PickNRandomNPCs(maxCount, false))
-        {
-            maxCount--;
-            yield return npc;
-            if (maxCount == 0)
-                yield break;
-        }
+        List<CustomerActor> pickedActors = [];
+        PickNRandomNPCs(ref pickedActors, entryPoint, bffs, true);
+        maxCount -= pickedActors.Count;
+        PickNRandomNPCs(ref pickedActors, entryPoint, maxCount, false);
+        return pickedActors;
     }
 
     private List<FriendEntry> PopulateSortedNPCList()

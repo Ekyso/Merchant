@@ -6,10 +6,15 @@ public sealed class CustomerData
     public string? Condition { get; set; } = null;
     public float Chance { get; set; } = 1.0f;
 
-    // Dialogue
-    public string? Haggle_Ask { get; set; } = null;
-    public string? Haggle_Compromise { get; set; } = null;
-    public string? Haggle_Overpriced { get; set; } = null;
-    public string? Haggle_Fail { get; set; } = null;
-    public string? Haggle_Success { get; set; } = null;
+    // Haggle Dialogue
+    public Dictionary<string, HaggleDialogue> HaggleDialogue = [];
+}
+
+public class HaggleDialogue
+{
+    public string? Ask { get; set; } = null;
+    public string? Compromise { get; set; } = null;
+    public string? Overpriced { get; set; } = null;
+    public string? Success { get; set; } = null;
+    public string? Fail { get; set; } = null;
 }

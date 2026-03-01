@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 
 namespace Merchant.Management;
 
-public sealed class StateManager<T>(T defaultValue, string? loggingName = null)
+public sealed class StateManager<T>(T defaultValue, string? loggingName)
     where T : Enum
 {
     public delegate void stateChanged();

@@ -1,0 +1,17 @@
+{
+  "Name": "[💸] Laissez-Faire",
+  "Author": "debug",
+  "Version": "1.0.0",
+  "Description": "Adam Smith fanfiction",
+  "UniqueID": "debug.Merchant.Example",
+  "MinimumApiVersion": "4.5",
+  "UpdateKeys": [],
+  "ContentPackFor": {
+    "UniqueID": "Pathoschild.ContentPatcher"
+  },
+  "Dependencies": [
+    {
+      "UniqueID": "mushymato.Merchant"
+    }
+  ]
+}

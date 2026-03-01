@@ -5,6 +5,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.GameData;
 using StardewValley.GameData.BigCraftables;
+using StardewValley.GameData.Characters;
 using StardewValley.GameData.Machines;
 using StardewValley.GameData.Shops;
 
@@ -82,6 +83,7 @@ internal static class AssetManager
                 "assets/customer_data.json",
                 AssetLoadPriority.Exclusive
             );
+            e.Edit(Edit_CustomerData, AssetEditPriority.Early - 100);
         }
         else if (name.IsEquivalentTo(Asset_Strings))
         {
@@ -94,6 +96,17 @@ internal static class AssetManager
             {
                 e.LoadFromModFile<Dictionary<string, string>>("i18n/default/strings.json", AssetLoadPriority.Exclusive);
             }
+        }
+    }
+
+    private static void Edit_CustomerData(IAssetData asset)
+    {
+        IDictionary<string, CustomerData> data = asset.AsDictionary<string, CustomerData>().Data;
+        foreach ((string key, CharacterData charaData) in Game1.characterData)
+        {
+            if (GameStateQuery.IsImmutablyFalse(charaData.CanSocialize))
+                continue;
+            data[key] = new();
         }
     }
 

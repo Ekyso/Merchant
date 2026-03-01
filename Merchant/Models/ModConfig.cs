@@ -1,4 +1,5 @@
 using Merchant.ModIntegration;
+using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 
 namespace Merchant.Models;
@@ -7,6 +8,7 @@ public sealed class ModConfig
 {
     public bool EnableAutoRestock { get; set; } = true;
     public int HaggleSpeed { get; set; } = 1500;
+    public Point HaggleUIOffset { get; set; } = Point.Zero;
 
     private void Reset()
     {
@@ -38,7 +40,27 @@ public sealed class ModConfig
             1000,
             3000,
             250,
-            (value) => $"{value / 1000f:0.00}"
+            (value) => $"{value / 1000f:0.00}s"
+        );
+        gmcm.AddTextOption(
+            mod,
+            () => $"{HaggleUIOffset.X},{HaggleUIOffset.Y}",
+            (value) =>
+            {
+                string[] parts = value.Split(',');
+                if (parts.Length < 2)
+                    return;
+                if (int.TryParse(parts[0].Trim(), out int x) && int.TryParse(parts[1].Trim(), out int y))
+                {
+                    HaggleUIOffset = new(x, y);
+                }
+                else
+                {
+                    HaggleUIOffset = Point.Zero;
+                }
+            },
+            I18n.Config_HaggleUiOffset_Name,
+            I18n.Config_HaggleUiOffset_Desc
         );
     }
 }

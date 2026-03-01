@@ -142,12 +142,8 @@ public sealed record ShopkeepBrowsing(
         floorDecorCount += location.terrainFeatures.Count();
 
         // customers
-        List<CustomerActor> customerActors = [];
         int customerCount = Math.Min(32, Math.Min(forSaleTables.Count, 4 + (ModEntry.ProgressData?.Logs.Count ?? 0)));
-        foreach (FriendEntry sourceFriend in ModEntry.FriendEntries.PickCustomerNPCs(customerCount))
-        {
-            customerActors.Add(new CustomerActor(sourceFriend, entryPoint));
-        }
+        List<CustomerActor> customerActors = ModEntry.FriendEntries.MakeCustomerActors(customerCount, entryPoint);
 
         ShopBonusStats bonusStats = new(
             standingDecorCount,
@@ -170,7 +166,7 @@ public sealed record ShopkeepBrowsing(
         Finished,
     }
 
-    private readonly StateManager<BrowsingState> state = new(BrowsingState.NewCustomer);
+    private readonly StateManager<BrowsingState> state = new(BrowsingState.NewCustomer, nameof(BrowsingState));
     private readonly int newCustomerCooldown = GetNewCustomerCooldown(Location);
 
     private static int GetNewCustomerCooldown(GameLocation location)

@@ -1,4 +1,5 @@
 using Merchant.Misc;
+using Merchant.Models;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Extensions;
@@ -22,6 +23,7 @@ public sealed class CustomerActor : NPC
     #region make
     private readonly Point entryPoint;
     internal readonly FriendEntry sourceFriend;
+    internal readonly HaggleDialogue? haggleDialogue;
     internal bool HaggleEnabled = true;
 
     public CustomerActor(FriendEntry sourceFriend, Point entryPoint)
@@ -38,23 +40,42 @@ public sealed class CustomerActor : NPC
         forceOneTileWide.Value = true;
         followSchedule = false;
         EventActor = true;
+        if (sourceFriend.CxData?.HaggleDialogue?.Count > 0)
+        {
+            haggleDialogue = Random.Shared.ChooseFrom(sourceFriend.CxData.HaggleDialogue.Values.ToList());
+        }
+        state = new(ActorState.Await, $"{nameof(ActorState)}[${sourceFriend.Npc.Name}]");
     }
     #endregion
 
     #region social
+    internal static readonly NPC dummySpeaker = new(
+        new AnimatedSprite("Characters\\Abigail", 0, 16, 16),
+        Vector2.Zero,
+        "",
+        0,
+        "???",
+        Game1.staminaRect,
+        eventActor: false
+    )
+    {
+        portraitOverridden = true,
+    };
+
     public Dialogue GetMerchantDialogue(NPC dummySpeaker, CxDialogueKind kind, params object[] substitutions)
     {
+        dummySpeaker.Name = sourceFriend.Npc.Name;
         dummySpeaker.Portrait = sourceFriend.Npc.Portrait;
         dummySpeaker.displayName = sourceFriend.Npc.displayName;
-        if (sourceFriend.CxData != null)
+        if (haggleDialogue != null)
         {
             string? dialogue = kind switch
             {
-                CxDialogueKind.Haggle_Ask => sourceFriend.CxData.Haggle_Ask,
-                CxDialogueKind.Haggle_Compromise => sourceFriend.CxData.Haggle_Compromise,
-                CxDialogueKind.Haggle_Overpriced => sourceFriend.CxData.Haggle_Fail,
-                CxDialogueKind.Haggle_Fail => sourceFriend.CxData.Haggle_Overpriced,
-                CxDialogueKind.Haggle_Success => sourceFriend.CxData.Haggle_Success,
+                CxDialogueKind.Haggle_Ask => haggleDialogue.Ask,
+                CxDialogueKind.Haggle_Compromise => haggleDialogue.Compromise,
+                CxDialogueKind.Haggle_Overpriced => haggleDialogue.Overpriced,
+                CxDialogueKind.Haggle_Success => haggleDialogue.Success,
+                CxDialogueKind.Haggle_Fail => haggleDialogue.Fail,
                 _ => null,
             };
             if (dialogue != null)
@@ -135,7 +156,7 @@ public sealed class CustomerActor : NPC
         Finished,
     }
 
-    private readonly StateManager<ActorState> state = new(ActorState.Await);
+    private readonly StateManager<ActorState> state;
 
     private readonly float chanceToBuy = 0.2f + 0.3f * Random.Shared.NextSingle();
     private int browsedCount = 0;
