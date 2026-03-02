@@ -9,11 +9,14 @@ public sealed class ModConfig
     public bool EnableAutoRestock { get; set; } = true;
     public int HaggleSpeed { get; set; } = 1500;
     public Point HaggleUIOffset { get; set; } = Point.Zero;
+    public bool AllowUnmetCustomers { get; set; } = false;
 
     private void Reset()
     {
         EnableAutoRestock = true;
         HaggleSpeed = 1500;
+        HaggleUIOffset = Point.Zero;
+        AllowUnmetCustomers = false;
     }
 
     private void Save()
@@ -30,6 +33,13 @@ public sealed class ModConfig
             (value) => EnableAutoRestock = value,
             I18n.Config_AutoRestock_Name,
             I18n.Config_AutoRestock_Desc
+        );
+        gmcm.AddBoolOption(
+            mod,
+            () => AllowUnmetCustomers,
+            (value) => AllowUnmetCustomers = value,
+            I18n.Config_UnmetNpc_Name,
+            I18n.Config_UnmetNpc_Desc
         );
         gmcm.AddNumberOption(
             mod,

@@ -13,7 +13,7 @@ public sealed class StateManager<T>(T defaultValue, string? loggingName)
         {
             if (loggingName != null)
             {
-                ModEntry.Log($"STATE({loggingName}): {field} -> {value}");
+                ModEntry.LogDebug($"STATE({loggingName}): {field} -> {value}");
             }
             if (Lock)
                 return;

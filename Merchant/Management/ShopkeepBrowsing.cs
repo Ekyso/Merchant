@@ -263,7 +263,7 @@ public sealed record ShopkeepBrowsing(
             AddNewCustomer();
             if (waitingActors.Any())
             {
-                state.SetNext(BrowsingState.NewCustomer, newCustomerCooldown + Random.Shared.Next(1000));
+                state.SetNext(BrowsingState.NewCustomer, newCustomerCooldown + Random.Shared.Next(2000));
             }
         }
 

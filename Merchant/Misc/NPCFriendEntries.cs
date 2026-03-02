@@ -96,14 +96,7 @@ internal class NPCFriendEntries(Farmer player)
             }
             return true;
         });
-        newSortedList.Sort(
-            (npcA, npcB) =>
-            {
-                if (npcA.Fren.Points == npcB.Fren.Points)
-                    return 0;
-                return npcA.FrenPercent.CompareTo(npcB.FrenPercent);
-            }
-        );
+        newSortedList.Sort((npcA, npcB) => npcA.FrenPercent.CompareTo(npcB.FrenPercent));
         bisect = newSortedList.Count;
         for (int i = 0; i < newSortedList.Count; i++)
         {

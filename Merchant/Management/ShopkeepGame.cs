@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Extensions;
 using StardewValley.GameData;
 using StardewValley.GameData.Buildings;
 using StardewValley.Menus;
@@ -73,7 +74,6 @@ public sealed class ShopkeepGame : IMinigame
         if (Game1.currentMinigame == null)
         {
             DynamicMethods.Set_Game1_currentMinigame(this);
-            draw(e.SpriteBatch);
         }
     }
 
@@ -91,7 +91,7 @@ public sealed class ShopkeepGame : IMinigame
                 browsing.DrawCharacterEmotes(e.SpriteBatch);
                 break;
             case StardewValley.Mods.RenderSteps.Menu:
-                haggling?.Draw(e.SpriteBatch);
+                draw(e.SpriteBatch);
                 break;
         }
     }
@@ -109,6 +109,11 @@ public sealed class ShopkeepGame : IMinigame
                 $"Failed to start {nameof(ShopkeepGame)}: {location?.NameOrUniqueName ?? "NULL-LOCATION"} {player?.Name ?? "NULL-PLAYER"} EVENT:{Game1.CurrentEvent}",
                 LogLevel.Error
             );
+            return null;
+        }
+        if (Game1.IsGreenRainingHere(location))
+        {
+            Game1.drawObjectDialogue(I18n.FailReason_OtherFarmer());
             return null;
         }
         if (player.Stamina < 25)
@@ -139,8 +144,7 @@ public sealed class ShopkeepGame : IMinigame
         ModEntry.help.Events.Display.Rendered += OnRendered;
 
         Game1.activeClickableMenu = null;
-        Game1.displayHUD = false;
-        Game1.currentMinigame = this;
+        Game1.onScreenMenus.RemoveWhere(menu => menu is Toolbar);
         Game1.changeMusicTrack("event2", false, MusicContext.MiniGame);
 
         // ban other players from entering (hopefully)
@@ -156,6 +160,8 @@ public sealed class ShopkeepGame : IMinigame
 
         player.setTileLocation(tileAboveCashRegister.ToVector2());
         player.faceDirection(2);
+
+        Game1.currentMinigame = this;
     }
 
     public void unload()
@@ -170,7 +176,8 @@ public sealed class ShopkeepGame : IMinigame
         ModEntry.help.Events.Display.Rendered -= OnRendered;
 
         Game1.activeClickableMenu = null;
-        Game1.displayHUD = true;
+        if (!Game1.onScreenMenus.Any(menu => menu is Toolbar))
+            Game1.onScreenMenus.Add(new Toolbar());
         Game1.stopMusicTrack(MusicContext.MiniGame);
 
         if (location.ParentBuilding.GetData() is BuildingData buildingData)
@@ -208,13 +215,9 @@ public sealed class ShopkeepGame : IMinigame
     #region gameloop
     public void draw(SpriteBatch b)
     {
-        // Draw day time money box by itself
-        if (Game1.activeClickableMenu == null)
-        {
-            Game1.PushUIMode();
-            Game1.dayTimeMoneyBox.draw(b);
-            Game1.PopUIMode();
-        }
+        // This is getting called in draw menu bc this is basically menu
+        // Draw haggling
+        haggling?.Draw(b);
     }
 
     public bool tick(GameTime time)
@@ -462,7 +465,6 @@ public sealed class ShopkeepGame : IMinigame
 
     private void ConfirmForceQuit(Farmer who)
     {
-        ModEntry.Log("ConfirmForceQuit");
         PrepareReport();
     }
 

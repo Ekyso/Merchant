@@ -3,9 +3,7 @@ using Merchant.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
-using StardewModdingAPI;
 using StardewValley;
-using StardewValley.Delegates;
 using StardewValley.Extensions;
 using StardewValley.Menus;
 using StardewValley.Triggers;
@@ -205,7 +203,6 @@ public sealed record ShopkeepHaggle(
             {
                 nextTargetPointer = targetPointer + delta / 3 + 2 * delta * Random.Shared.NextSingle() / 3;
                 targetOverRange -= nextTargetPointer - targetPointer;
-                ModEntry.Log($"TargetPointer {targetPointer} -> {nextTargetPointer}");
                 state.SetNext(HaggleState.Begin, pickedPauseMS);
                 SetNextDialogue(CustomerDialogueKind.Haggle_Compromise, pickedPrice);
             }
@@ -304,7 +301,8 @@ public sealed record ShopkeepHaggle(
         Vector2 position = Utility.getTopLeftPositionForCenteringOnScreen(haggleBarTotalWidth, haggleBarHeight, 0, 0);
         haggleBarIconBoxPos = new(
             position.X + ModEntry.config.HaggleUIOffset.X,
-            MathF.Min(position.Y, Game1.viewport.Height - 600) + ModEntry.config.HaggleUIOffset.Y
+            MathF.Min(position.Y, Game1.viewport.Height - 600 * (Game1.options.uiScale / Game1.options.zoomLevel))
+                + ModEntry.config.HaggleUIOffset.Y
         );
         haggleBarIconPos = new(haggleBarIconBoxPos.X + 16, haggleBarIconBoxPos.Y + 16);
         haggleBarSlideBounds = new(
