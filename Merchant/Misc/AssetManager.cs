@@ -150,7 +150,7 @@ internal static class AssetManager
         {
             if (GameStateQuery.IsImmutablyFalse(charaData.CanSocialize))
                 continue;
-            data.TryAdd(key, new());
+            data.TryAdd(key, new CustomerData());
         }
     }
 

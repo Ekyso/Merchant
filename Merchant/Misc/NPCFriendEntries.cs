@@ -7,14 +7,28 @@ using StardewValley.Delegates;
 
 namespace Merchant.Misc;
 
-public record FriendEntry(NPC Npc, Friendship Fren, int MaxHeartCount)
+public abstract record BaseFriendEntry(NPC Npc, BaseCustomerData? BaseCxData, Friendship? Fren, int MaxHeartCount)
 {
     public const int OneHeart = 250;
-    public readonly CustomerData? CxData = AssetManager.GetCustomerData(Npc.Name);
-    public float FrenPercent => Fren.Points / (float)(OneHeart * MaxHeartCount);
-    public bool IsMaxedHeart => Fren.Points == OneHeart * MaxHeartCount;
+    public readonly bool IsTourist = BaseCxData?.IsTourist() ?? false;
 
-    public bool WillComeToShop(GameStateQueryContext context)
+    public readonly int FrenPoints = Fren?.Points ?? -1;
+    public readonly float FrenPercent = (Fren?.Points ?? 0) / (float)(OneHeart * MaxHeartCount);
+    public readonly bool IsMaxedHeart = (Fren?.Points ?? -1) >= OneHeart * MaxHeartCount;
+
+    public abstract float GetHaggleBaseTargetPointer(ForSaleTarget forSale);
+
+    public abstract float GetHaggleTargetOverRange(ForSaleTarget forSale);
+
+    public abstract int GetGiftTasteForSaleItem(ForSaleTarget forSale);
+
+    public abstract bool WillComeToShop(GameStateQueryContext context);
+}
+
+public sealed record FriendEntry(NPC Npc, CustomerData? CxData, Friendship? Fren, int MaxHeartCount)
+    : BaseFriendEntry(Npc, CxData, Fren, MaxHeartCount)
+{
+    public override bool WillComeToShop(GameStateQueryContext context)
     {
         if (CxData == null)
             return true;
@@ -24,29 +38,91 @@ public record FriendEntry(NPC Npc, Friendship Fren, int MaxHeartCount)
             return true;
         return GameStateQuery.CheckConditions(CxData.Condition, context);
     }
+
+    public override float GetHaggleBaseTargetPointer(ForSaleTarget forSale)
+    {
+        float haggleBaseTarget = FrenPoints <= 1 ? 0.15f : 0.15f + MathF.Log10(FrenPoints / 2000f) * 0.25f;
+
+        int giftTaste = GetGiftTasteForSaleItem(forSale);
+        switch (giftTaste)
+        {
+            case NPC.gift_taste_stardroptea:
+            case NPC.gift_taste_love:
+                haggleBaseTarget += 0.2f;
+                break;
+            case NPC.gift_taste_like:
+                haggleBaseTarget += 0.1f;
+                break;
+            case NPC.gift_taste_dislike:
+                haggleBaseTarget -= 0.1f;
+                break;
+        }
+        return Math.Max(0f, haggleBaseTarget + 0.2f * Random.Shared.NextSingle());
+    }
+
+    public override float GetHaggleTargetOverRange(ForSaleTarget forSale)
+    {
+        if (FrenPoints >= 1250)
+            return 0.25f;
+        return 0.05f * (FrenPoints / 250f);
+    }
+
+    private readonly Dictionary<ForSaleTarget, int> cachedGiftTastes = [];
+
+    public override int GetGiftTasteForSaleItem(ForSaleTarget forSale)
+    {
+        if (!cachedGiftTastes.TryGetValue(forSale, out int giftTaste))
+        {
+            giftTaste = Npc.getGiftTasteForThisItem(forSale.Thing);
+            cachedGiftTastes[forSale] = giftTaste;
+        }
+        return giftTaste;
+    }
+}
+
+public sealed record TouristFriendEntry(NPC Npc, TouristData TrstData) : BaseFriendEntry(Npc, TrstData, null, -2)
+{
+    public override bool WillComeToShop(GameStateQueryContext context)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override int GetGiftTasteForSaleItem(ForSaleTarget forSale)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override float GetHaggleBaseTargetPointer(ForSaleTarget forSale)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override float GetHaggleTargetOverRange(ForSaleTarget forSale)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 internal class NPCFriendEntries(Farmer player)
 {
-    private static readonly Friendship placeholderFriendship = new() { Status = FriendshipStatus.Friendly };
-    private List<FriendEntry>? sorted = null;
+    private List<FriendEntry>? sortedFriends = null;
     private int bisect = 0;
 
-    internal void Clear() => sorted = null;
+    internal void Clear() => sortedFriends = null;
 
     private void PickNRandomNPCs(ref List<CustomerActor> picked, Point entryPoint, int count, bool bestFriendsOnly)
     {
         if (count <= 0)
             return;
 
-        sorted ??= PopulateSortedNPCList();
+        sortedFriends ??= PopulateSortedNPCList();
 
         List<int> ranges;
         if (bestFriendsOnly)
         {
-            if (bisect == sorted.Count)
+            if (bisect == sortedFriends.Count)
                 return;
-            ranges = Enumerable.Range(bisect, sorted.Count - bisect).ToList();
+            ranges = Enumerable.Range(bisect, sortedFriends.Count - bisect).ToList();
         }
         else
         {
@@ -58,7 +134,7 @@ internal class NPCFriendEntries(Farmer player)
         Random.Shared.ShuffleInPlace(ranges);
         for (int i = 0; i < Math.Min(ranges.Count, count); i++)
         {
-            FriendEntry friend = sorted[ranges[i]];
+            FriendEntry friend = sortedFriends[ranges[i]];
             if (!friend.Npc.IsInvisible)
             {
                 picked.Add(new(friend, entryPoint));
@@ -71,7 +147,7 @@ internal class NPCFriendEntries(Farmer player)
         int bffs = maxCount / 3;
         List<CustomerActor> pickedActors = [];
         PickNRandomNPCs(ref pickedActors, entryPoint, bffs, true);
-        ModEntry.Log($"Picked {pickedActors.Count} customers (bffs {sorted?.Count - bisect})");
+        ModEntry.Log($"Picked {pickedActors.Count} customers (bffs {sortedFriends?.Count - bisect})");
         maxCount -= pickedActors.Count;
         PickNRandomNPCs(ref pickedActors, entryPoint, maxCount, false);
         ModEntry.Log($"Picked {pickedActors.Count} customers");
@@ -86,11 +162,17 @@ internal class NPCFriendEntries(Farmer player)
         {
             if (npc.Name != null && npc.CanSocialize)
             {
-                if (!player.friendshipData.TryGetValue(npc.Name, out Friendship friendship))
+                if (!player.friendshipData.TryGetValue(npc.Name, out Friendship? friendship))
                 {
-                    friendship = placeholderFriendship;
+                    if (!ModEntry.config.AllowUnmetCustomers)
+                        return true;
                 }
-                FriendEntry friendEntry = new(npc, friendship, Utility.GetMaximumHeartsForCharacter(npc));
+                FriendEntry friendEntry = new(
+                    npc,
+                    AssetManager.GetCustomerData(npc.Name),
+                    friendship,
+                    Utility.GetMaximumHeartsForCharacter(npc)
+                );
                 if (friendEntry.WillComeToShop(context))
                     newSortedList.Add(friendEntry);
             }
@@ -111,9 +193,9 @@ internal class NPCFriendEntries(Farmer player)
 
     internal bool TryGetByName(string name, [NotNullWhen(true)] out NPC? npc)
     {
-        sorted ??= PopulateSortedNPCList();
+        sortedFriends ??= PopulateSortedNPCList();
 
-        foreach (FriendEntry friend in sorted)
+        foreach (BaseFriendEntry friend in sortedFriends)
         {
             if (friend.Npc.Name == name)
             {

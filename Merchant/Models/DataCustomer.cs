@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Xna.Framework;
 using StardewValley.Extensions;
+using StardewValley.GameData.Characters;
 
 namespace Merchant.Models;
 
@@ -12,8 +14,10 @@ public enum CustomerDialogueKind
     Haggle_Fail = 4,
 }
 
-public sealed class CustomerData
+public abstract class BaseCustomerData
 {
+    public abstract bool IsTourist();
+
     // Will Shop
     public string? Condition { get; set; } = null;
     public float Chance { get; set; } = 1.0f;
@@ -70,4 +74,22 @@ public sealed class CustomerDialogue
     public string? Haggle_Overpriced { get; set; } = null;
     public string? Haggle_Success { get; set; } = null;
     public string? Haggle_Fail { get; set; } = null;
+}
+
+public sealed class CustomerData : BaseCustomerData
+{
+    public override bool IsTourist() => false;
+}
+
+public sealed class TouristData : BaseCustomerData
+{
+    public override bool IsTourist() => true;
+
+    public List<string>? RequiredContextTags { get; set; } = null;
+
+    public string? DisplayName { get; set; } = null;
+    public string? Portrait { get; set; } = null;
+    public string? Sprite { get; set; } = null;
+    public Point Size { get; set; } = new Point(16, 32);
+    public Rectangle? MugShotSourceRect { get; set; } = null;
 }

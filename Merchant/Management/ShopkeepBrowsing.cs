@@ -204,8 +204,6 @@ public sealed record ShopkeepBrowsing(
         return 2000;
     }
 
-    internal bool HaggleEnabled = true;
-
     private readonly Queue<CustomerActor> waitingActors = ShuffleWaitingActors(CustomerActors);
     private readonly List<CustomerActor> dispatchedActors = [];
 
@@ -287,7 +285,7 @@ public sealed record ShopkeepBrowsing(
         foreach (CustomerActor actor in dispatchedActors)
         {
             if (!actor.IsInvisible)
-                actor.update(time, Location);
+                actor.UpdateDuringReporting(time, Location);
         }
     }
 
@@ -298,7 +296,6 @@ public sealed record ShopkeepBrowsing(
             return;
         }
         ModEntry.Log($"AddNewCustomer: {nextActor.Name}, ({waitingActors.Count} remaining)");
-        nextActor.HaggleEnabled = HaggleEnabled;
         dispatchedActors.Add(nextActor);
         nextActor.currentLocation = Location;
         nextActor.reloadSprite(true);

@@ -20,6 +20,7 @@ public sealed class ShopkeepGame : IMinigame
     private readonly Farmer player;
     private readonly Point tileAboveCashRegister;
     private readonly (Point, int) playerPreviousPosition;
+    private readonly Point playerPreviousViewport;
 
     #region state
 
@@ -54,6 +55,7 @@ public sealed class ShopkeepGame : IMinigame
         this.browsing = browsing;
         this.tileAboveCashRegister = tileAboveCashRegister;
         this.playerPreviousPosition = (player.TilePoint, player.FacingDirection);
+        this.playerPreviousViewport = new(Game1.viewport.X, Game1.viewport.Y);
         changeScreenSize();
     }
 
@@ -191,6 +193,9 @@ public sealed class ShopkeepGame : IMinigame
         player.faceDirection(playerPreviousPosition.Item2);
         player.TemporaryItem = null;
 
+        Game1.viewport.X = playerPreviousViewport.X;
+        Game1.viewport.Y = playerPreviousViewport.Y;
+
         Unloaded = true;
     }
 
@@ -282,12 +287,41 @@ public sealed class ShopkeepGame : IMinigame
         if (haggling != null && haggling.IsReadyToStart)
         {
             state.Current = GameLoopState.Haggle;
-            return;
         }
-        if (browsing.Update(time, ref haggling))
+        else if (browsing.Update(time, ref haggling))
         {
             PrepareReport();
-            return;
+        }
+        else
+        {
+            // allow panning viewport with keys
+            int panX = 0;
+            int panY = 0;
+            Keys[] pressedKeys = Game1.oldKBState.GetPressedKeys();
+            foreach (Keys k in pressedKeys)
+            {
+                if (Game1.options.doesInputListContain(Game1.options.moveDownButton, k))
+                {
+                    panY += 4;
+                }
+                else if (Game1.options.doesInputListContain(Game1.options.moveRightButton, k))
+                {
+                    panX += 4;
+                }
+                else if (Game1.options.doesInputListContain(Game1.options.moveUpButton, k))
+                {
+                    panY -= 4;
+                }
+                else if (Game1.options.doesInputListContain(Game1.options.moveLeftButton, k))
+                {
+                    panX -= 4;
+                }
+            }
+            // set pan if changed
+            if (panX != 0 || panY != 0)
+            {
+                Game1.panScreen(panX * 3, panY * 3);
+            }
         }
     }
 
@@ -446,6 +480,7 @@ public sealed class ShopkeepGame : IMinigame
             if (state.Current == GameLoopState.Haggle)
             {
                 haggling?.Pick();
+                return;
             }
         }
 
@@ -460,6 +495,7 @@ public sealed class ShopkeepGame : IMinigame
             {
                 Game1.activeClickableMenu = new ConfirmationDialog(I18n.QuitConfirm(), ConfirmForceQuit);
             }
+            return;
         }
     }
 

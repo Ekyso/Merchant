@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Extensions;
+using StardewValley.Menus;
 using StardewValley.Pathfinding;
 using StardewValley.TokenizableStrings;
 
@@ -15,7 +16,6 @@ public sealed class CustomerActor : NPC
     #region make
     private readonly Point entryPoint;
     internal readonly FriendEntry sourceFriend;
-    internal bool HaggleEnabled = true;
 
     public CustomerActor(FriendEntry sourceFriend, Point entryPoint)
         : base(
@@ -68,55 +68,6 @@ public sealed class CustomerActor : NPC
             string.Concat(AssetManager.Asset_Strings, ":", kind.ToString()),
             AssetManager.LoadString(kind.ToString(), substitutions)
         );
-    }
-
-    public float GetFriendshipHaggleBase()
-    {
-        // TODO: custom haggle bonus
-        if (sourceFriend.Fren.Points <= 1)
-            return 0.15f;
-        return 0.15f + MathF.Log10(sourceFriend.Fren.Points / 2000f) * 0.25f;
-    }
-
-    public float GetHaggleBaseTargetPointer(ForSaleTarget forSale)
-    {
-        float haggleBaseTarget = GetFriendshipHaggleBase();
-        int giftTaste = GetGiftTasteForSaleItem(forSale);
-        switch (giftTaste)
-        {
-            case gift_taste_stardroptea:
-            case gift_taste_love:
-                haggleBaseTarget += 0.2f;
-                break;
-            case gift_taste_like:
-                haggleBaseTarget += 0.1f;
-                break;
-            case gift_taste_dislike:
-                haggleBaseTarget -= 0.1f;
-                break;
-        }
-        return Math.Max(0f, haggleBaseTarget + 0.2f * Random.Shared.NextSingle());
-    }
-
-    public float GetHaggleTargetOverRange()
-    {
-        // TODO: custom target over range bonus
-        // 0.05f per heart, up to 0.25f
-        if (sourceFriend.Fren.Points >= 1250)
-            return 0.25f;
-        return 0.05f * (sourceFriend.Fren.Points / 250f);
-    }
-
-    private readonly Dictionary<ForSaleTarget, int> cachedGiftTastes = [];
-
-    private int GetGiftTasteForSaleItem(ForSaleTarget forSale)
-    {
-        if (!cachedGiftTastes.TryGetValue(forSale, out int giftTaste))
-        {
-            giftTaste = sourceFriend.Npc.getGiftTasteForThisItem(forSale.Thing);
-            cachedGiftTastes[forSale] = giftTaste;
-        }
-        return giftTaste;
     }
     #endregion
 
@@ -193,7 +144,7 @@ public sealed class CustomerActor : NPC
             ];
             foreach (ForSaleTarget forSale in availableForSale)
             {
-                int giftTaste = GetGiftTasteForSaleItem(forSale);
+                int giftTaste = sourceFriend.GetGiftTasteForSaleItem(forSale);
                 int seq = giftTaste switch
                 {
                     gift_taste_love => 0,
@@ -253,9 +204,9 @@ public sealed class CustomerActor : NPC
 
     private void DecideBuy()
     {
-        if (HaggleEnabled && ForSale != null)
+        if (ForSale != null)
         {
-            int giftTaste = GetGiftTasteForSaleItem(ForSale);
+            int giftTaste = sourceFriend.GetGiftTasteForSaleItem(ForSale);
             if (giftTaste == gift_taste_hate)
             {
                 doEmote(angryEmote);
@@ -291,7 +242,6 @@ public sealed class CustomerActor : NPC
     {
         ModEntry.Log($"LeftTheShop {c.displayName}");
         ForSale = null;
-        cachedGiftTastes.Clear();
         state.SetAndLock(ActorState.Finished);
         Position = Vector2.Zero;
         IsInvisible = true;
@@ -303,17 +253,13 @@ public sealed class CustomerActor : NPC
         // controller updates from vanilla
         if (!Game1.IsMasterGame)
         {
-            if (controller == null)
+            if (controller == null && !freezeMotion)
             {
-                if (!freezeMotion)
-                    updateMovement(location, time);
+                updateMovement(location, time);
             }
-            else
+            if (controller != null && !freezeMotion && controller.update(time))
             {
-                if (!freezeMotion && controller.update(time))
-                {
-                    controller = null;
-                }
+                controller = null;
             }
         }
         state.Update(time);
@@ -326,7 +272,6 @@ public sealed class CustomerActor : NPC
             ModEntry.Log($"Actor '{Name}' stuck in Move, do force unstuck.", LogLevel.Warn);
             if (ForSale != null && ForSaleBrowsing != null && TilePoint != ForSaleBrowsing.Value.Item1)
             {
-                controller = null;
                 state.Current = ActorState.Considering;
                 setTilePosition(ForSaleBrowsing.Value.Item1);
                 faceDirection(ForSaleBrowsing.Value.Item2);
@@ -337,6 +282,15 @@ public sealed class CustomerActor : NPC
                 LeavingTheShop();
             }
         }
+    }
+
+    public void UpdateDuringReporting(GameTime time, GameLocation location)
+    {
+        IClickableMenu menu = Game1.activeClickableMenu;
+        DynamicMethods.Set_Game1_activeClickableMenu(null);
+        LeavingTheShop();
+        update(time, location);
+        DynamicMethods.Set_Game1_activeClickableMenu(menu);
     }
     #endregion
 }
