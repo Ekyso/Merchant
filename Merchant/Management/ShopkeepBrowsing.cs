@@ -9,7 +9,6 @@ using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Objects;
 using StardewValley.SpecialOrders;
-using StardewValley.Triggers;
 
 namespace Merchant.Management;
 
@@ -149,7 +148,8 @@ public sealed record ShopkeepBrowsing(
             }
             else
             {
-                standingDecorCount++;
+                int furnitureSize = furniture.getTilesHigh() * furniture.getTilesWide();
+                standingDecorCount += Math.Clamp(furniture.getTilesHigh() * furniture.getTilesWide() / 2, 1, 4);
             }
         }
         if (forSaleTables.Count == 0)
@@ -213,7 +213,6 @@ public sealed record ShopkeepBrowsing(
     {
         customerActors = customerActors.ToList();
         Random.Shared.ShuffleInPlace(customerActors);
-        ModEntry.Log($"Queued {customerActors.Count} actors");
         return new(customerActors);
     }
 
@@ -298,10 +297,11 @@ public sealed record ShopkeepBrowsing(
         {
             return;
         }
-        ModEntry.Log($"AddNewCustomer: {nextActor.Name}");
+        ModEntry.Log($"AddNewCustomer: {nextActor.Name}, ({waitingActors.Count} remaining)");
         nextActor.HaggleEnabled = HaggleEnabled;
         dispatchedActors.Add(nextActor);
         nextActor.currentLocation = Location;
+        nextActor.reloadSprite(true);
         nextActor.setTileLocation(EntryPoint.ToVector2());
         nextActor.faceDirection(0);
         Game1.playSound(AssetManager.DoorbellCue, 1100 + (int)(300 * Random.Shared.NextSingle()));

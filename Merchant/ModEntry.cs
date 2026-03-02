@@ -46,6 +46,7 @@ public sealed class ModEntry : Mod
         help.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         help.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         help.Events.GameLoop.Saving += OnSaving;
+        help.Events.Player.Warped += OnWarped;
 
         help.ConsoleCommands.Add(
             "merchant-forcequit",
@@ -101,6 +102,11 @@ public sealed class ModEntry : Mod
     private void OnSaving(object? sender, SavingEventArgs e)
     {
         progressData.Value?.Write();
+        FriendEntries.Clear();
+    }
+
+    private void OnWarped(object? sender, WarpedEventArgs e)
+    {
         FriendEntries.Clear();
     }
 

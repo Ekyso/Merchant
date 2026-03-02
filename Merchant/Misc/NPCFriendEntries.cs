@@ -28,6 +28,7 @@ public record FriendEntry(NPC Npc, Friendship Fren, int MaxHeartCount)
 
 internal class NPCFriendEntries(Farmer player)
 {
+    private static readonly Friendship placeholderFriendship = new() { Status = FriendshipStatus.Friendly };
     private List<FriendEntry>? sorted = null;
     private int bisect = 0;
 
@@ -70,8 +71,10 @@ internal class NPCFriendEntries(Farmer player)
         int bffs = maxCount / 3;
         List<CustomerActor> pickedActors = [];
         PickNRandomNPCs(ref pickedActors, entryPoint, bffs, true);
+        ModEntry.Log($"Picked {pickedActors.Count} customers (bffs {sorted?.Count - bisect})");
         maxCount -= pickedActors.Count;
         PickNRandomNPCs(ref pickedActors, entryPoint, maxCount, false);
+        ModEntry.Log($"Picked {pickedActors.Count} customers");
         return pickedActors;
     }
 
@@ -81,12 +84,12 @@ internal class NPCFriendEntries(Farmer player)
         List<FriendEntry> newSortedList = [];
         Utility.ForEachVillager(npc =>
         {
-            if (
-                npc.Name != null
-                && npc.CanSocialize
-                && player.friendshipData.TryGetValue(npc.Name, out Friendship friendship)
-            )
+            if (npc.Name != null && npc.CanSocialize)
             {
+                if (!player.friendshipData.TryGetValue(npc.Name, out Friendship friendship))
+                {
+                    friendship = placeholderFriendship;
+                }
                 FriendEntry friendEntry = new(npc, friendship, Utility.GetMaximumHeartsForCharacter(npc));
                 if (friendEntry.WillComeToShop(context))
                     newSortedList.Add(friendEntry);

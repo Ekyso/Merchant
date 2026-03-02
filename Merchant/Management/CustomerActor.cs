@@ -133,7 +133,6 @@ public sealed class CustomerActor : NPC
     }
 
     private readonly StateManager<ActorState> state;
-    private TimeSpan moveStateTimeout = TimeSpan.Zero;
 
     private readonly float chanceToBuy = 0.2f + 0.3f * Random.Shared.NextSingle();
     private int browsedCount = 0;
@@ -145,8 +144,11 @@ public sealed class CustomerActor : NPC
             field?.HeldBy = null;
             value?.HeldBy = this;
             field = value;
+            if (value == null)
+                ForSaleBrowsing = null;
         }
     }
+    public (Point, int)? ForSaleBrowsing;
 
     public bool IsLeavingOrFinished => state.Current == ActorState.Leaving || state.Current == ActorState.Finished;
 
@@ -228,11 +230,18 @@ public sealed class CustomerActor : NPC
                 return;
             }
             ForSale = nextForSale;
-
+            ForSaleBrowsing = Random.Shared.ChooseFrom(ForSale.BrowseAround);
             state.Current = ActorState.Move;
-            moveStateTimeout = TimeSpan.FromSeconds(30);
-            (Point endPoint, int facing) = Random.Shared.ChooseFrom(ForSale.BrowseAround);
-            controller = new PathFindController(this, currentLocation, endPoint, facing, ReachedForSaleItem);
+            controller = new PathFindController(
+                this,
+                currentLocation,
+                ForSaleBrowsing.Value.Item1,
+                ForSaleBrowsing.Value.Item2,
+                ReachedForSaleItem
+            )
+            {
+                nonDestructivePathing = true,
+            };
         }
     }
 
@@ -272,7 +281,10 @@ public sealed class CustomerActor : NPC
             return;
         ForSale = null;
         state.Current = ActorState.Leaving;
-        controller = new PathFindController(this, currentLocation, entryPoint, -1, LeftTheShop);
+        controller = new PathFindController(this, currentLocation, entryPoint, -1, LeftTheShop)
+        {
+            nonDestructivePathing = true,
+        };
     }
 
     private void LeftTheShop(Character c, GameLocation location)
@@ -288,44 +300,42 @@ public sealed class CustomerActor : NPC
     public override void update(GameTime time, GameLocation location)
     {
         base.update(time, location);
-        if (moveStateTimeout > TimeSpan.Zero)
-        {
-            moveStateTimeout -= time.ElapsedGameTime;
-            if (moveStateTimeout <= TimeSpan.Zero && state.Current == ActorState.Move)
-            {
-                ModEntry.Log($"Actor '{Name}' stuck in Move for 30s+, do force unstuck.", LogLevel.Warn);
-                moveStateTimeout = TimeSpan.Zero;
-                if (ForSale == null)
-                {
-                    LeavingTheShop();
-                }
-                else
-                {
-                    controller = null;
-                    state.Current = ActorState.Considering;
-                    (Point endPoint, int facing) = Random.Shared.ChooseFrom(ForSale.BrowseAround);
-                    setTilePosition(endPoint);
-                    faceDirection(facing);
-                    ReachedForSaleItem(this, currentLocation);
-                }
-            }
-        }
         // controller updates from vanilla
         if (!Game1.IsMasterGame)
         {
-            if (controller == null && !freezeMotion)
+            if (controller == null)
             {
-                updateMovement(location, time);
+                if (!freezeMotion)
+                    updateMovement(location, time);
             }
-            if (controller != null && !freezeMotion && controller.update(time))
+            else
             {
-                controller = null;
+                if (!freezeMotion && controller.update(time))
+                {
+                    controller = null;
+                }
             }
         }
         state.Update(time);
         if (state.Current == ActorState.Leaving && TilePoint == entryPoint)
         {
             LeftTheShop(this, location);
+        }
+        else if (state.Current == ActorState.Move && controller == null)
+        {
+            ModEntry.Log($"Actor '{Name}' stuck in Move, do force unstuck.", LogLevel.Warn);
+            if (ForSale != null && ForSaleBrowsing != null && TilePoint != ForSaleBrowsing.Value.Item1)
+            {
+                controller = null;
+                state.Current = ActorState.Considering;
+                setTilePosition(ForSaleBrowsing.Value.Item1);
+                faceDirection(ForSaleBrowsing.Value.Item2);
+                ReachedForSaleItem(this, currentLocation);
+            }
+            else
+            {
+                LeavingTheShop();
+            }
         }
     }
     #endregion

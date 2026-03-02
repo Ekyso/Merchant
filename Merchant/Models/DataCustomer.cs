@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Serialization;
 using StardewValley.Extensions;
 
 namespace Merchant.Models;
@@ -22,45 +21,44 @@ public sealed class CustomerData
     // Haggle Dialogue
     public Dictionary<string, CustomerDialogue> Dialogue = [];
 
-    private List<string>[]? mergedDialogues = null;
-
-    [OnDeserialized]
-    private void OnDeserialized(StreamingContext context)
+    internal List<string>[]? MergedDialogues
     {
-        // merge
-        mergedDialogues =
-        [
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-        ];
-        foreach (CustomerDialogue dialogue in Dialogue.Values)
+        get
         {
-            if (dialogue.Haggle_Ask != null)
-                mergedDialogues[(int)CustomerDialogueKind.Haggle_Ask].Add(dialogue.Haggle_Ask);
-            if (dialogue.Haggle_Compromise != null)
-                mergedDialogues[(int)CustomerDialogueKind.Haggle_Compromise].Add(dialogue.Haggle_Compromise);
-            if (dialogue.Haggle_Overpriced != null)
-                mergedDialogues[(int)CustomerDialogueKind.Haggle_Overpriced].Add(dialogue.Haggle_Overpriced);
-            if (dialogue.Haggle_Success != null)
-                mergedDialogues[(int)CustomerDialogueKind.Haggle_Success].Add(dialogue.Haggle_Success);
-            if (dialogue.Haggle_Fail != null)
-                mergedDialogues[(int)CustomerDialogueKind.Haggle_Fail].Add(dialogue.Haggle_Fail);
+            if (field != null)
+                return field;
+            // merge
+            field =
+            [
+                [],
+                [],
+                [],
+                [],
+                [],
+            ];
+            foreach (CustomerDialogue dialogue in Dialogue.Values)
+            {
+                if (dialogue.Haggle_Ask != null)
+                    field[(int)CustomerDialogueKind.Haggle_Ask].Add(dialogue.Haggle_Ask);
+                if (dialogue.Haggle_Compromise != null)
+                    field[(int)CustomerDialogueKind.Haggle_Compromise].Add(dialogue.Haggle_Compromise);
+                if (dialogue.Haggle_Overpriced != null)
+                    field[(int)CustomerDialogueKind.Haggle_Overpriced].Add(dialogue.Haggle_Overpriced);
+                if (dialogue.Haggle_Success != null)
+                    field[(int)CustomerDialogueKind.Haggle_Success].Add(dialogue.Haggle_Success);
+                if (dialogue.Haggle_Fail != null)
+                    field[(int)CustomerDialogueKind.Haggle_Fail].Add(dialogue.Haggle_Fail);
+            }
+            return field;
         }
     }
 
     internal bool TryGetDialogueText(CustomerDialogueKind kind, [NotNullWhen(true)] out string? dialogueText)
     {
         dialogueText = null;
-        if (mergedDialogues == null || (int)kind >= mergedDialogues.Length)
+        if (MergedDialogues == null || (int)kind >= MergedDialogues.Length)
             return false;
-        dialogueText = Random.Shared.ChooseFrom(mergedDialogues[(int)kind]);
+        dialogueText = Random.Shared.ChooseFrom(MergedDialogues[(int)kind]);
         return dialogueText != null;
     }
 }

@@ -97,6 +97,7 @@ public sealed class MerchantProgressData
         MerchantProgressData saveData = ModEntry.help.Data.ReadGlobalData<MerchantProgressData>(key) ?? new();
         saveData.key = key;
         saveData.FinishLoading();
+        saveData.Write();
         return saveData;
     }
 

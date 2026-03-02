@@ -199,7 +199,7 @@ internal static class AssetManager
             Fragility = 0,
             CanBePlacedOutdoors = true,
             CanBePlacedIndoors = true,
-            IsLamp = true,
+            IsLamp = false,
             Texture = Asset_TextureCraftables,
             SpriteIndex = 0,
             ContextTags = [ContextTag_CashRegister],

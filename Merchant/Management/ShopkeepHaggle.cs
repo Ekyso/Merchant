@@ -36,7 +36,6 @@ public sealed record ShopkeepHaggle(
         ShopkeepHaggle newHaggle = new(player, buyer, forSale, minMult, maxMult, forSale.Boost?.Value ?? 0f, patternFn);
         newHaggle.SetNextDialogue(CustomerDialogueKind.Haggle_Ask, newHaggle.PntToPrice(newHaggle.targetPointer));
         newHaggle.CalculateBounds();
-        ModEntry.Log($"Theme Boost: {newHaggle.ThemeBoost}");
 
         return newHaggle;
     }
@@ -75,7 +74,7 @@ public sealed record ShopkeepHaggle(
 
     private float pointer = 0f;
 
-    public float periodMS = ModEntry.config.HaggleSpeed / (1f - ThemeBoost);
+    public float periodMS = ModEntry.config.HaggleSpeed / (1f - ThemeBoost * 0.5f);
     public int Tries { get; private set; } = 0;
     private float targetPointer = Buyer.GetHaggleBaseTargetPointer(ForSale);
     private float targetOverRange = 0.1f + (0.15f + Buyer.GetHaggleTargetOverRange()) * Random.Shared.NextSingle();
@@ -352,6 +351,7 @@ public sealed record ShopkeepHaggle(
     public void Draw(SpriteBatch b)
     {
         // dialogue
+
         haggleDialogueBox?.draw(b);
         // tries remaining
         IClickableMenu.drawTextureBox(

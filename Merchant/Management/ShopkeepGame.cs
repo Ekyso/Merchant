@@ -90,6 +90,9 @@ public sealed class ShopkeepGame : IMinigame
             case StardewValley.Mods.RenderSteps.World_AlwaysFront:
                 browsing.DrawCharacterEmotes(e.SpriteBatch);
                 break;
+            case StardewValley.Mods.RenderSteps.Menu:
+                haggling?.Draw(e.SpriteBatch);
+                break;
         }
     }
 
@@ -205,15 +208,13 @@ public sealed class ShopkeepGame : IMinigame
     #region gameloop
     public void draw(SpriteBatch b)
     {
-        Game1.PushUIMode();
         // Draw day time money box by itself
         if (Game1.activeClickableMenu == null)
         {
+            Game1.PushUIMode();
             Game1.dayTimeMoneyBox.draw(b);
+            Game1.PopUIMode();
         }
-        // Draw Haggling
-        haggling?.Draw(b);
-        Game1.PopUIMode();
     }
 
     public bool tick(GameTime time)
@@ -388,6 +389,7 @@ public sealed class ShopkeepGame : IMinigame
     {
         if (Game1.activeClickableMenu is not null)
         {
+            Game1.PushUIMode();
             int mouseX = Game1.getMouseX();
             int mouseY = Game1.getMouseY();
             if (Game1.activeClickableMenu.isWithinBounds(mouseX, mouseY))
@@ -399,6 +401,7 @@ public sealed class ShopkeepGame : IMinigame
                 Game1.activeClickableMenu.exitThisMenu();
                 Game1.activeClickableMenu = null;
             }
+            Game1.PopUIMode();
         }
         else if (state.Current == GameLoopState.Haggle)
         {
@@ -415,7 +418,9 @@ public sealed class ShopkeepGame : IMinigame
     {
         if (Game1.activeClickableMenu is not null)
         {
+            Game1.PushUIMode();
             Game1.activeClickableMenu.receiveRightClick(Game1.getMouseX(), Game1.getMouseY(), playSound);
+            Game1.PopUIMode();
         }
         else if (state.Current == GameLoopState.Haggle)
         {
@@ -427,7 +432,9 @@ public sealed class ShopkeepGame : IMinigame
     {
         if (Game1.activeClickableMenu is not null)
         {
+            Game1.PushUIMode();
             Game1.activeClickableMenu.receiveKeyPress(k);
+            Game1.PopUIMode();
             return;
         }
 
