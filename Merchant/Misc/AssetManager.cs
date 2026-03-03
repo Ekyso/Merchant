@@ -45,7 +45,7 @@ internal static class AssetManager
     private const string Asset_TextureCraftables = $"{ModEntry.ModId}/craftables";
     internal const string Asset_Strings = $"{ModEntry.ModId}.i18n";
     internal const string Asset_CustomerData = $"{ModEntry.ModId}/Customers";
-    internal const string Asset_ShopkeepContextData = $"{ModEntry.ModId}/ShopkeepContexts";
+    internal const string Asset_ShopkeepThemeBoostData = $"{ModEntry.ModId}/ShopkeepThemeBoosts";
     internal const string Asset_TourismWavesData = $"{ModEntry.ModId}/TourismWaves";
     internal const string Asset_Tourists = $"{ModEntry.ModId}/Tourists";
 
@@ -54,7 +54,7 @@ internal static class AssetManager
     internal const string ContextTag_CashRegister = $"{ModEntry.ModId}_cash_register";
     internal const string DoorbellCue = $"{ModEntry.ModId}_doorbell";
     internal const string MapProp_EntryPoint = $"{ModEntry.ModId}_EntryPoint";
-    internal const string Metadata_ShopkeepContextId = $"{ModEntry.ModId}_ShopkeepContextId";
+    internal const string Metadata_ShopkeepThemeBoosts = $"{ModEntry.ModId}_ShopkeepThemeBoosts";
     internal const string Metadata_ShopkeepCondition = $"{ModEntry.ModId}_ShopkeepCondition";
     internal const string Metadata_ShopkeepNotAllowedMessage = $"{ModEntry.ModId}_ShopkeepNotAllowedMessage";
     internal const string Default_TourismWave = "Default";
@@ -69,7 +69,9 @@ internal static class AssetManager
 
     #region lazy loaders
     internal static readonly CachedLazyLoader<CustomerData> Customers = new(Asset_CustomerData);
-    internal static readonly CachedLazyLoader<ShopkeepContextData> ShopkeepContexts = new(Asset_ShopkeepContextData);
+    internal static readonly CachedLazyLoader<ShopkeepThemeBoostData> ShopkeepContexts = new(
+        Asset_ShopkeepThemeBoostData
+    );
     internal static readonly CachedLazyLoader<TourismWaveData> TourismWaves = new(Asset_TourismWavesData);
     internal static readonly CachedLazyLoader<TouristData> Tourists = new(Asset_Tourists);
 
@@ -113,9 +115,9 @@ internal static class AssetManager
         {
             e.Edit(Edit_Events_FishShop, AssetEditPriority.Default);
         }
-        else if (name.IsEquivalentTo(Asset_ShopkeepContextData))
+        else if (name.IsEquivalentTo(Asset_ShopkeepThemeBoostData))
         {
-            e.LoadFrom(() => new Dictionary<string, ShopkeepContextData>(), AssetLoadPriority.Exclusive);
+            e.LoadFrom(() => new Dictionary<string, ShopkeepThemeBoostData>(), AssetLoadPriority.Exclusive);
         }
         else if (name.IsEquivalentTo(Asset_CustomerData))
         {

@@ -2,26 +2,26 @@ using StardewValley;
 
 namespace Merchant.Models;
 
-public sealed class ShopkeepContextData
-{
-    // Theme
-    public List<ShopkeepThemeBoostData>? ThemedBoosts { get; set; } = null;
+// public sealed class ShopkeepThemeBoostData
+// {
+//     // Theme
+//     public List<ShopkeepThemeBoostData>? ThemedBoosts { get; set; } = null;
 
-    public ShopkeepThemeBoostData? GetThemedBoostForItem(Item item)
-    {
-        if (ThemedBoosts == null || ThemedBoosts.Count == 0)
-            return null;
-        SObject? obj = item as SObject;
-        foreach (ShopkeepThemeBoostData curBoost in ThemedBoosts)
-        {
-            if (curBoost.RequiredContextTags?.All((obj ?? item).HasContextTag) ?? false)
-            {
-                return curBoost;
-            }
-        }
-        return null;
-    }
-}
+//     public ShopkeepThemeBoostData? GetThemedBoostForItem(Item item)
+//     {
+//         if (ThemedBoosts == null || ThemedBoosts.Count == 0)
+//             return null;
+//         SObject? obj = item as SObject;
+//         foreach (ShopkeepThemeBoostData curBoost in ThemedBoosts)
+//         {
+//             if (curBoost.RequiredContextTags?.All((obj ?? item).HasContextTag) ?? false)
+//             {
+//                 return curBoost;
+//             }
+//         }
+//         return null;
+//     }
+// }
 
 public sealed class ShopkeepThemeBoostData
 {
@@ -44,5 +44,20 @@ public sealed class ShopkeepThemeBoostData
             $"{Value:P2} ",
             RequiredContextTags != null ? string.Join(',', RequiredContextTags) : "ANY"
         );
+    }
+
+    public static ShopkeepThemeBoostData? GetThemedBoostForItem(List<ShopkeepThemeBoostData>? themedBoosts, Item item)
+    {
+        if (themedBoosts == null || themedBoosts.Count == 0)
+            return null;
+        SObject? obj = item as SObject;
+        foreach (ShopkeepThemeBoostData curBoost in themedBoosts)
+        {
+            if (curBoost.RequiredContextTags?.All((obj ?? item).HasContextTag) ?? false)
+            {
+                return curBoost;
+            }
+        }
+        return null;
     }
 }

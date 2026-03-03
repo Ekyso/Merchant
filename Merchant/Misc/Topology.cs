@@ -55,7 +55,7 @@ public static class Topology
     internal static bool IsTileStandable(
         GameLocation location,
         Point tile,
-        CollisionMask collisionMask = ~CollisionMask.Characters
+        CollisionMask collisionMask = ~(CollisionMask.Characters | CollisionMask.Farmers)
     )
     {
         return IsTilePassable(location, tile)

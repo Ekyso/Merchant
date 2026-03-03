@@ -15,7 +15,7 @@ public interface ITableShim
         Furniture table,
         Farmer player,
         List<Point> reachableTiles,
-        ShopkeepContextData? shopkeepContextData,
+        List<ShopkeepThemeBoostData>? themeBoostDatas,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     );
     bool TryRemoveItemFromTable(Furniture table, Item item, int idx);
@@ -33,7 +33,7 @@ public sealed class TableShimBase : ITableShim
         Furniture table,
         Farmer player,
         List<Point> reachableTiles,
-        ShopkeepContextData? shopkeepContextData,
+        List<ShopkeepThemeBoostData>? themeBoostDatas,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     )
     {
@@ -61,7 +61,10 @@ public sealed class TableShimBase : ITableShim
             return true;
         }
 
-        forSaleTargets = [new(heldObj, table, browseAround, shopkeepContextData?.GetThemedBoostForItem(heldObj))];
+        forSaleTargets =
+        [
+            new(heldObj, table, browseAround, ShopkeepThemeBoostData.GetThemedBoostForItem(themeBoostDatas, heldObj)),
+        ];
         return true;
     }
 
@@ -106,18 +109,12 @@ public sealed class TableShimFF(IFurnitureFrameworkAPI ffApi) : ITableShim
         Furniture table,
         Farmer player,
         List<Point> reachableTiles,
-        ShopkeepContextData? shopkeepContextData,
+        List<ShopkeepThemeBoostData>? themeBoostDatas,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     )
     {
         if (!ffApi.IsFF(table))
-            return baseShim.TryGetForSaleTargets(
-                table,
-                player,
-                reachableTiles,
-                shopkeepContextData,
-                out forSaleTargets
-            );
+            return baseShim.TryGetForSaleTargets(table, player, reachableTiles, themeBoostDatas, out forSaleTargets);
 
         forSaleTargets = null;
         List<Tuple<Item?, Vector2>> tableList = ffApi.GetSlotItems(table);
@@ -139,7 +136,9 @@ public sealed class TableShimFF(IFurnitureFrameworkAPI ffApi) : ITableShim
                 forSaleTargets.Add(null);
                 continue;
             }
-            forSaleTargets.Add(new(item, table, browseAround, shopkeepContextData?.GetThemedBoostForItem(item), i));
+            forSaleTargets.Add(
+                new(item, table, browseAround, ShopkeepThemeBoostData.GetThemedBoostForItem(themeBoostDatas, item), i)
+            );
         }
         return forSaleTargets.Count > 0;
     }

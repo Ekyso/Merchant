@@ -10,7 +10,7 @@ public sealed record ShopBonusStats(
     int FloorDecorCount,
     int MapTileCount,
     int UnreachableTableCount,
-    ShopkeepContextData? ShopkeepData
+    List<ShopkeepThemeBoostData>? ThemeBoostDatas
 )
 {
     private const float FLOOR_COVERAGE_TARGET = 2 / 3f;
@@ -52,7 +52,7 @@ public sealed record ShopBonusStats(
         sb.Append(
             I18n.Bonus_RugFloor_Values(
                 FloorDecorCount,
-                (int)(MapTileCount * FLOOR_COVERAGE_TARGET),
+                MapTileCount,
                 $"{FloorCoverageBonusRaw:P2}",
                 FloorCoverageBonusRaw >= 1f ? I18n.Bonus_Capped() : ""
             )
@@ -65,12 +65,12 @@ public sealed record ShopBonusStats(
                 $"{totalBonus + ShopkeepHaggle.MAX_MULT:0.00}"
             )
         );
-        if (ShopkeepData != null && ShopkeepData.ThemedBoosts?.Count > 0)
+        if (ThemeBoostDatas?.Count > 0)
         {
             sb.Append(LINEBREAK);
             sb.Append('^');
             sb.Append(I18n.Bonus_ThemeBoost());
-            foreach (ShopkeepThemeBoostData boost in ShopkeepData.ThemedBoosts)
+            foreach (ShopkeepThemeBoostData boost in ThemeBoostDatas)
             {
                 sb.Append("^  ");
                 if (TokenParser.ParseText(boost.Description) is string desc)

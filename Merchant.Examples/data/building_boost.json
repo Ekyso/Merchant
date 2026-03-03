@@ -3,19 +3,15 @@
   "Changes": [
     {
       "Action": "EditData",
-      "Target": "mushymato.Merchant/ShopkeepContexts",
+      "Target": "mushymato.Merchant/ShopkeepThemeBoosts",
       "Entries": {
         "{{ModId}}_EggZone": {
-          "ThemedBoosts": [
-            {
-              "Id": "{{ModId}}_EggBoost",
-              "Description": "Gib Egg",
-              "RequiredContextTags": [
-                "egg_item"
-              ],
-              "Value": 0.2,
-            }
-          ]
+          "Id": "{{ModId}}_EggBoost",
+          "Description": "Gib Egg",
+          "RequiredContextTags": [
+            "egg_item"
+          ],
+          "Value": 0.2,
         }
       }
     },
@@ -27,7 +23,7 @@
         "Metadata"
       ],
       "Entries": {
-        "mushymato.Merchant_ShopkeepContextId": "{{ModId}}_EggZone"
+        "mushymato.Merchant_ShopkeepThemeBoosts": "{{ModId}}_EggZone"
       }
     },
   ]

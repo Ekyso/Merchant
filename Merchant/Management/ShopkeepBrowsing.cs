@@ -67,11 +67,18 @@ public sealed record ShopkeepBrowsing(
             return false;
         }
         // location
-        ShopkeepContextData? shopkeepContextData;
+        List<ShopkeepThemeBoostData>? themeBoostDatas;
         if (location.ParentBuilding != null)
         {
-            string shopkeepThemeId = location.ParentBuilding.GetMetadata(AssetManager.Metadata_ShopkeepCondition);
-            shopkeepContextData = AssetManager.ShopkeepContexts.Get(shopkeepThemeId);
+            string themeBoostIds = location.ParentBuilding.GetMetadata(AssetManager.Metadata_ShopkeepThemeBoosts);
+            themeBoostDatas = [];
+            foreach (string themeBoost in themeBoostIds.Split(','))
+            {
+                if (AssetManager.ShopkeepContexts.Get(themeBoost) is ShopkeepThemeBoostData themeBoostData)
+                {
+                    themeBoostDatas.Add(themeBoostData);
+                }
+            }
 
             if (
                 location.ParentBuilding.GetMetadata(AssetManager.Metadata_ShopkeepCondition) is string shopkeepCondition
@@ -125,7 +132,7 @@ public sealed record ShopkeepBrowsing(
                     furniture,
                     player,
                     reachableTiles,
-                    shopkeepContextData,
+                    themeBoostDatas,
                     out List<ForSaleTarget?>? ForSaleTargets
                 )
             )
@@ -184,7 +191,7 @@ public sealed record ShopkeepBrowsing(
             floorDecorCount,
             reachableTiles.Count,
             unreachableTableCount,
-            shopkeepContextData
+            themeBoostDatas
         );
 
         browsing = new(
