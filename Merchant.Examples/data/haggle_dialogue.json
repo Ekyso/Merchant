@@ -14,16 +14,14 @@
           "Haggle_Compromise": "A - Compromise - Price - {0} - Item {1}",
           "Haggle_Overpriced": "A - Overpriced - Price - {0} - Item {1}",
           "Haggle_Success": "A - Success - Price - {0} - Item {1}",
-          "Haggle_Fail": "A - Fail - Price - {0} - Item {1}",
-          "Extra1": "11111"
+          "Haggle_Fail": "A - Fail - Price - {0} - Item {1}"
         },
         "{{ModId}}_Haggle_B": {
           "Haggle_Ask": "B - Ask - Price - {0} - Item {1}",
           "Haggle_Compromise": "B - Compromise - Price - {0} - Item {1}",
           "Haggle_Overpriced": "B - Overpriced - Price - {0} - Item {1}",
           "Haggle_Success": "B - Success - Price - {0} - Item {1}",
-          "Haggle_Fail": "B - Fail - Price - {0} - Item {1}",
-          "Extra1": "22222"
+          "Haggle_Fail": "B - Fail - Price - {0} - Item {1}"
         }
       }
     }

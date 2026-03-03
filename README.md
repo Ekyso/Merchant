@@ -14,7 +14,7 @@ Besides having the goods, you will want to have an appealing store. This directl
 
 This is evaluated in 2 ways:
 * **Decor** counts up all your non-table and non-rug furniture, plus certain craftables (Scarecrows, Indoor Pots, Mannequins). To get full bonus on decor, you should have 1 decor per table. Large furniture count for more points.
-* **Rug/Floor** counts how much of the floor is covered by rugs, paths, grass, and bush. To get full bonus on rug/floor, you should cover over 1/3rd of the location or at least 225 tiles, whichever is smaller.
+* **Rug/Floor** counts how much of the floor is covered by rugs, paths, grass, crops and bush. To get full bonus on rug/floor, you should cover over 2/3rd of reachable tiles (up to 225).
 
 You can check your current bonuses in the `Decor Bonuses` menu.
 

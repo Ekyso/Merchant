@@ -67,16 +67,19 @@ public sealed record ShopkeepBrowsing(
             return false;
         }
         // location
-        List<ShopkeepThemeBoostData>? themeBoostDatas;
+        List<ShopkeepThemeBoostData>? themeBoostDatas = null;
         if (location.ParentBuilding != null)
         {
             string themeBoostIds = location.ParentBuilding.GetMetadata(AssetManager.Metadata_ShopkeepThemeBoosts);
-            themeBoostDatas = [];
-            foreach (string themeBoost in themeBoostIds.Split(','))
+            if (themeBoostIds != null)
             {
-                if (AssetManager.ShopkeepContexts.Get(themeBoost) is ShopkeepThemeBoostData themeBoostData)
+                themeBoostDatas = [];
+                foreach (string themeBoost in themeBoostIds.Split(','))
                 {
-                    themeBoostDatas.Add(themeBoostData);
+                    if (AssetManager.ShopkeepContexts.Get(themeBoost) is ShopkeepThemeBoostData themeBoostData)
+                    {
+                        themeBoostDatas.Add(themeBoostData);
+                    }
                 }
             }
 
@@ -178,11 +181,6 @@ public sealed record ShopkeepBrowsing(
             forSaleTargets,
             excludingSet
         );
-        if (waitingActors.Count == 0)
-        {
-            failReason = I18n.FailReason_NoItemsForSale();
-            return false;
-        }
         Random.Shared.ShuffleInPlace(waitingActors);
 
         ShopBonusStats bonusStats = new(

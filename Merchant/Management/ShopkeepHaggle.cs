@@ -62,7 +62,7 @@ public sealed record ShopkeepHaggle(
         Done,
     }
 
-    private const double pickedPauseMS = 1000.0;
+    private const double pickedPauseMS = 2000.0;
     private const int totalPitch = 12;
     private const int maxTries = 3;
 
@@ -141,7 +141,7 @@ public sealed record ShopkeepHaggle(
         {
             case HaggleState.Done:
                 Buyer.LeavingTheShop();
-                Player.Stamina -= 4;
+                Player.Stamina -= ShopkeepGame.STAMINA_COST_HAGGLING;
                 Game1.exitActiveMenu();
                 return true;
             case HaggleState.Begin:

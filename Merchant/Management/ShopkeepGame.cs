@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Merchant.Misc;
 using Microsoft.CodeAnalysis;
 using Microsoft.Xna.Framework;
@@ -17,6 +18,9 @@ namespace Merchant.Management;
 
 public sealed class ShopkeepGame : IMinigame
 {
+    internal const int STAMINA_COST_SHOPKEEPING = 10;
+    internal const int STAMINA_COST_HAGGLING = 4;
+
     private readonly GameLocation location;
     private readonly Farmer player;
     private readonly Point tileAboveCashRegister;
@@ -99,45 +103,54 @@ public sealed class ShopkeepGame : IMinigame
         }
     }
 
-    public static ShopkeepGame? StartMinigame(
+    public static bool TryStartMinigame(
         GameLocation? location,
         Farmer? player,
         Point cashRegisterPoint,
-        ShopkeepBrowsing browsing
+        ShopkeepBrowsing browsing,
+        [NotNullWhen(false)] out string? failReason
     )
     {
+        failReason = null;
         if (location == null || player == null || Game1.CurrentEvent != null)
         {
-            ModEntry.Log(
-                $"Failed to start {nameof(ShopkeepGame)}: {location?.NameOrUniqueName ?? "NULL-LOCATION"} {player?.Name ?? "NULL-PLAYER"} EVENT:{Game1.CurrentEvent}",
-                LogLevel.Error
-            );
-            return null;
+            failReason =
+                $"Failed to start {nameof(ShopkeepGame)}: {location?.NameOrUniqueName ?? "NULL-LOCATION"} {player?.Name ?? "NULL-PLAYER"}";
+            ModEntry.Log(failReason, LogLevel.Error);
+            return false;
+        }
+
+        if (browsing.WaitingActors.Count == 0)
+        {
+            failReason = I18n.FailReason_EveryoneHate();
+            return false;
         }
         if (Game1.IsGreenRainingHere(location))
         {
-            Game1.drawObjectDialogue(I18n.FailReason_OtherFarmer());
-            return null;
+            failReason = I18n.FailReason_GreenRain();
+            return false;
         }
-        if (player.Stamina < 25)
+        if (player.Stamina < 1 + STAMINA_COST_HAGGLING + STAMINA_COST_SHOPKEEPING)
         {
-            Game1.drawObjectDialogue(I18n.FailReason_TooTired());
-            return null;
+            failReason = I18n.FailReason_TooTired();
+            return false;
         }
         if (location.farmers.Count > 1)
         {
-            Game1.drawObjectDialogue(I18n.FailReason_OtherFarmer());
-            return null;
+            failReason = I18n.FailReason_OtherFarmer();
+            return false;
         }
+
         Point tileAboveCashRegister = new(cashRegisterPoint.X, cashRegisterPoint.Y - 1);
         if (!Topology.IsTileStandable(location, tileAboveCashRegister, CollisionMask.All))
         {
-            Game1.drawObjectDialogue(I18n.FailReason_TilePosition());
-            return null;
+            failReason = I18n.FailReason_TilePosition();
+            return false;
         }
+
         ShopkeepGame shopkeepGame = new(location, player, browsing, tileAboveCashRegister);
         shopkeepGame.PostCreateSetup();
-        return shopkeepGame;
+        return true;
     }
 
     private void PostCreateSetup()
@@ -159,7 +172,7 @@ public sealed class ShopkeepGame : IMinigame
         }
 
         player.completelyStopAnimatingOrDoingAction();
-        player.Stamina -= 20;
+        player.Stamina -= STAMINA_COST_SHOPKEEPING;
         player.TemporaryItem = ItemRegistry.Create("(P)0");
 
         player.setTileLocation(tileAboveCashRegister.ToVector2());

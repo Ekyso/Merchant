@@ -66,7 +66,16 @@ public static class GameDelegates
                 switch (response)
                 {
                     case "merchant_startgame":
-                        ShopkeepGame.StartMinigame(location, player, cashRegisterPoint, browsing);
+                        if (
+                            !ShopkeepGame.TryStartMinigame(
+                                location,
+                                player,
+                                cashRegisterPoint,
+                                browsing,
+                                out string? failReason
+                            )
+                        )
+                            Game1.drawObjectDialogue(failReason);
                         break;
                     case "merchant_checkbonus":
                         Game1.drawDialogueNoTyping(browsing.ShopBonus.FormatSummary());

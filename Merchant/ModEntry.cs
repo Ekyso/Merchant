@@ -111,12 +111,12 @@ public sealed class ModEntry : Mod
     private void OnSaving(object? sender, SavingEventArgs e)
     {
         progressData.Value?.Write();
-        friendEntries.Value = null;
+        friendEntries.Value?.Reset();
     }
 
     private void OnWarped(object? sender, WarpedEventArgs e)
     {
-        friendEntries.Value = null;
+        friendEntries.Value?.Reset();
     }
 
     /// <summary>SMAPI static monitor Log wrapper</summary>
