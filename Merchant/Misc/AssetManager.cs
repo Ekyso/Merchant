@@ -54,9 +54,9 @@ internal static class AssetManager
     internal const string ContextTag_CashRegister = $"{ModEntry.ModId}_cash_register";
     internal const string DoorbellCue = $"{ModEntry.ModId}_doorbell";
     internal const string MapProp_EntryPoint = $"{ModEntry.ModId}_EntryPoint";
-    internal const string Metadata_ShopkeepThemeBoosts = $"{ModEntry.ModId}_ShopkeepThemeBoosts";
-    internal const string Metadata_ShopkeepCondition = $"{ModEntry.ModId}_ShopkeepCondition";
-    internal const string Metadata_ShopkeepNotAllowedMessage = $"{ModEntry.ModId}_ShopkeepNotAllowedMessage";
+    internal const string Metadata_ShopkeepThemeBoosts = $"{ModEntry.ModId}/ShopkeepThemeBoosts";
+    internal const string Metadata_ShopkeepCondition = $"{ModEntry.ModId}/ShopkeepCondition";
+    internal const string Metadata_ShopkeepNotAllowedMessage = $"{ModEntry.ModId}/ShopkeepNotAllowedMessage";
     internal const string Default_TourismWave = "Default";
 
     private const AssetEditPriority ReallyEarly = AssetEditPriority.Early - 100;

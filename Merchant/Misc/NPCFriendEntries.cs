@@ -14,6 +14,7 @@ public abstract record BaseFriendEntry(NPC Npc, BaseCustomerData? BaseCxData, Fr
 
     public readonly int FrenPoints = Fren?.Points ?? -1;
     public readonly float FrenPercent = (Fren?.Points ?? 0) / (float)(OneHeart * MaxHeartCount);
+    public readonly float FrenLogHeart = MathF.Log10((Fren?.Points ?? 0) / 2000f);
     public readonly bool IsMaxedHeart = (Fren?.Points ?? -1) >= OneHeart * MaxHeartCount;
 
     public abstract float GetHaggleBaseTargetPointer(ForSaleTarget forSale);
@@ -37,30 +38,28 @@ public sealed record FriendEntry(NPC Npc, CustomerData? CxData, Friendship? Fren
 {
     public override float GetHaggleBaseTargetPointer(ForSaleTarget forSale)
     {
-        float haggleBaseTarget = FrenPoints <= 1 ? 0.15f : 0.15f + MathF.Log10(FrenPoints / 2000f) * 0.25f;
+        float haggleBaseTarget = 0.1f + FrenLogHeart * 0.1f + 0.15f * Random.Shared.NextSingle();
 
         int giftTaste = GetGiftTasteForSaleItem(forSale);
         switch (giftTaste)
         {
             case NPC.gift_taste_stardroptea:
             case NPC.gift_taste_love:
-                haggleBaseTarget += 0.2f;
+                haggleBaseTarget += 0.4f;
                 break;
             case NPC.gift_taste_like:
-                haggleBaseTarget += 0.1f;
+                haggleBaseTarget += 0.2f;
                 break;
             case NPC.gift_taste_dislike:
-                haggleBaseTarget -= 0.1f;
+                haggleBaseTarget -= 0.2f;
                 break;
         }
-        return Math.Max(0f, haggleBaseTarget + 0.2f * Random.Shared.NextSingle());
+        return Math.Max(0f, haggleBaseTarget);
     }
 
     public override float GetHaggleTargetOverRange(ForSaleTarget forSale)
     {
-        if (FrenPoints >= 1250)
-            return 0.25f;
-        return 0.05f * (FrenPoints / 250f);
+        return 0.15f + 0.15f * Random.Shared.NextSingle() + 0.2f * FrenPercent;
     }
 
     private readonly Dictionary<ForSaleTarget, int> cachedGiftTastes = [];

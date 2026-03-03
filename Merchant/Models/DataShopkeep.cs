@@ -2,27 +2,6 @@ using StardewValley;
 
 namespace Merchant.Models;
 
-// public sealed class ShopkeepThemeBoostData
-// {
-//     // Theme
-//     public List<ShopkeepThemeBoostData>? ThemedBoosts { get; set; } = null;
-
-//     public ShopkeepThemeBoostData? GetThemedBoostForItem(Item item)
-//     {
-//         if (ThemedBoosts == null || ThemedBoosts.Count == 0)
-//             return null;
-//         SObject? obj = item as SObject;
-//         foreach (ShopkeepThemeBoostData curBoost in ThemedBoosts)
-//         {
-//             if (curBoost.RequiredContextTags?.All((obj ?? item).HasContextTag) ?? false)
-//             {
-//                 return curBoost;
-//             }
-//         }
-//         return null;
-//     }
-// }
-
 public sealed class ShopkeepThemeBoostData
 {
     public string? Id

@@ -23,7 +23,7 @@
         "Metadata"
       ],
       "Entries": {
-        "mushymato.Merchant_ShopkeepThemeBoosts": "{{ModId}}_EggZone"
+        "mushymato.Merchant/ShopkeepThemeBoosts": "{{ModId}}_EggZone"
       }
     },
   ]

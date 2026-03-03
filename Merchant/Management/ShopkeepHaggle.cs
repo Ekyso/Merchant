@@ -75,8 +75,7 @@ public sealed record ShopkeepHaggle(
     public float periodMS = ModEntry.config.HaggleSpeed / (1f - ThemeBoost * 0.5f);
     public int Tries { get; private set; } = 0;
     private float targetPointer = Buyer.sourceFriend.GetHaggleBaseTargetPointer(ForSale);
-    private float targetOverRange =
-        0.1f + (0.15f + Buyer.sourceFriend.GetHaggleTargetOverRange(ForSale)) * Random.Shared.NextSingle();
+    private float targetOverRange = Buyer.sourceFriend.GetHaggleTargetOverRange(ForSale);
     private float nextTargetPointer = -1;
     private readonly uint basePrice = (uint)Math.Max(ForSale.Thing.sellToStorePrice(Player.UniqueMultiplayerID), 1);
     private uint leewayPrice = 0;
