@@ -3,21 +3,32 @@
   "Changes": [
     {
       "Action": "EditData",
-      "Target": "mushymato.Merchant/ShopkeepLocations",
-      "TargetField": [
-        "Shed",
-        "ThemedBoosts"
-      ],
+      "Target": "mushymato.Merchant/ShopkeepContexts",
       "Entries": {
-        "{{ModId}}_EggBoost": {
-          "Id": "{{ModId}}_EggBoost",
-          "Description": "Gib Egg",
-          "RequiredContextTags": [
-            "egg_item"
-          ],
-          "Value": 0.2,
+        "{{ModId}}_EggZone": {
+          "ThemedBoosts": [
+            {
+              "Id": "{{ModId}}_EggBoost",
+              "Description": "Gib Egg",
+              "RequiredContextTags": [
+                "egg_item"
+              ],
+              "Value": 0.2,
+            }
+          ]
         }
       }
-    }
+    },
+    {
+      "Action": "EditData",
+      "Target": "Data/Buildings",
+      "TargetField": [
+        "Big Shed",
+        "Metadata"
+      ],
+      "Entries": {
+        "mushymato.Merchant_ShopkeepContextId": "{{ModId}}_EggZone"
+      }
+    },
   ]
 }

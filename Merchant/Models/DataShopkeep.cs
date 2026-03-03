@@ -2,14 +2,14 @@ using StardewValley;
 
 namespace Merchant.Models;
 
-public sealed class ShopkeepLocationData
+public sealed class ShopkeepContextData
 {
     // Can use as shop
     public string? Condition { get; set; } = null;
     public string? CantBeShopReason { get; set; } = null;
 
     // Theme
-    public List<ShopkeepThemeBoostData> ThemedBoosts { get; set; } = [];
+    public List<ShopkeepThemeBoostData>? ThemedBoosts { get; set; } = null;
 
     public ShopkeepThemeBoostData? GetThemedBoostForItem(Item item)
     {

@@ -10,7 +10,7 @@ public sealed record ShopBonusStats(
     int FloorDecorCount,
     int MapTileCount,
     int UnreachableTableCount,
-    ShopkeepLocationData? ShopkeepData
+    ShopkeepContextData? ShopkeepData
 )
 {
     private const float FLOOR_COVERAGE_TARGET = 1 / 3f;

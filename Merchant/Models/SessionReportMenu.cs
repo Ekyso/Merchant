@@ -96,8 +96,8 @@ public sealed class SessionReportMenu : IClickableMenu
             for (int col = 0; col < COLS; col++)
             {
                 int idx = col + row * COLS;
-                // if (idx >= sessionLog.Sales.Count)
-                //     break;
+                if (idx >= sessionLog.Sales.Count)
+                    break;
 
                 int x = xPositionOnScreen + col * CELL_WIDTH;
                 int y = yPositionOnScreen + row * CELL_HEIGHT;
@@ -120,22 +120,6 @@ public sealed class SessionReportMenu : IClickableMenu
             }
         }
 
-        NewMethod(sessionLog);
-        NewMethod(sessionLog);
-        NewMethod(sessionLog);
-        NewMethod(sessionLog);
-        NewMethod(sessionLog);
-
-        Recenter();
-        if (Game1.options.snappyMenus && Game1.options.gamepadControls)
-        {
-            populateClickableComponentList();
-            snapToDefaultClickableComponent();
-        }
-    }
-
-    private void NewMethod(ShopkeepSessionLog sessionLog)
-    {
         foreach (SoldRecord record in sessionLog.Sales)
         {
             Item soldItem = record.CreateReprItem();
@@ -154,6 +138,13 @@ public sealed class SessionReportMenu : IClickableMenu
                 mugshotSourceRect = new(0, 0, 16, 24);
             }
             soldRecordDisplays.Add(new(record, soldItem, characterName, sprite, mugshotSourceRect));
+        }
+
+        Recenter();
+        if (Game1.options.snappyMenus && Game1.options.gamepadControls)
+        {
+            populateClickableComponentList();
+            snapToDefaultClickableComponent();
         }
     }
 
@@ -245,7 +236,6 @@ public sealed class SessionReportMenu : IClickableMenu
             scrollIdx += ROWS;
             scrolled = true;
         }
-        ModEntry.Log($"{direction} : {scrollIdx}");
         if (scrolled)
         {
             Game1.playSound("shiny4");

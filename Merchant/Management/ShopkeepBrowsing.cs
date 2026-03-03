@@ -61,35 +61,41 @@ public sealed record ShopkeepBrowsing(
     {
         browsing = null;
         failReason = null;
-        // location
-        if (location.ParentBuilding == null)
-        {
-            failReason = I18n.FailReason_NotFarmBuilding();
-            return false;
-        }
-        ShopkeepLocationData? shopkeepLocationData = AssetManager.GetShopkeepLocationData(
-            location.ParentBuilding.buildingType.Value
-        );
-        if (
-            shopkeepLocationData != null
-            && !GameStateQuery.CheckConditions(
-                shopkeepLocationData.Condition,
-                new(location, player, null, null, Random.Shared)
-            )
-        )
-        {
-            failReason = shopkeepLocationData.CantBeShopReason ?? I18n.FailReason_CantBeShop();
-            return false;
-        }
+        // map
         if (location.Map == null)
         {
             failReason = I18n.FailReason_InvalidMap();
             return false;
         }
         int mapTileCount = location.Map.DisplayWidth / 64 * (location.Map.DisplayHeight / 64);
-        if (mapTileCount == 0)
+        if (mapTileCount <= 0)
         {
             failReason = I18n.FailReason_InvalidMap();
+            return false;
+        }
+        // location
+        if (!location.TryGetMapProperty(AssetManager.MapProp_ShopkeepContextId, out string? shopkeepThemeId))
+        {
+            if (location.ParentBuilding != null)
+            {
+                shopkeepThemeId = location.ParentBuilding.GetMetadata(AssetManager.MapProp_ShopkeepContextId);
+            }
+        }
+        ShopkeepContextData? shopkeepContextData = AssetManager.GetShopkeepContextData(shopkeepThemeId);
+        if (
+            shopkeepContextData != null
+            && !GameStateQuery.CheckConditions(
+                shopkeepContextData.Condition,
+                new(location, player, null, null, Random.Shared)
+            )
+        )
+        {
+            failReason = shopkeepContextData.CantBeShopReason ?? I18n.FailReason_CantBeShop();
+            return false;
+        }
+        if (location.ParentBuilding == null && shopkeepContextData == null)
+        {
+            failReason = I18n.FailReason_NotFarmBuilding();
             return false;
         }
         // tile accessibility
@@ -99,7 +105,10 @@ public sealed record ShopkeepBrowsing(
             return false;
         }
         Warp firstWarp = location.warps[0];
-        Point entryPoint = new(firstWarp.X, firstWarp.Y - 1);
+        if (!location.TryGetMapPropertyAs(AssetManager.MapProp_EntryPoint, out Point entryPoint))
+        {
+            entryPoint = new(firstWarp.X, firstWarp.Y - 1);
+        }
         if (!Topology.IsTileStandable(location, entryPoint))
         {
             failReason = I18n.FailReason_WarpBlocked();
@@ -124,7 +133,7 @@ public sealed record ShopkeepBrowsing(
                     furniture,
                     player,
                     reachableTiles,
-                    shopkeepLocationData,
+                    shopkeepContextData,
                     out List<ForSaleTarget?>? ForSaleTargets
                 )
             )
@@ -171,7 +180,7 @@ public sealed record ShopkeepBrowsing(
             floorDecorCount,
             mapTileCount,
             unreachableTableCount,
-            shopkeepLocationData
+            shopkeepContextData
         );
 
         browsing = new(

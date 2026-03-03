@@ -81,16 +81,3 @@ public sealed class CustomerData : BaseCustomerData
 {
     public override bool IsTourist() => false;
 }
-
-public sealed class TouristData : BaseCustomerData
-{
-    public override bool IsTourist() => true;
-
-    public List<string>? RequiredContextTags { get; set; } = null;
-
-    public string? DisplayName { get; set; } = null;
-    public string? Portrait { get; set; } = null;
-    public string? Sprite { get; set; } = null;
-    public Point Size { get; set; } = new Point(16, 32);
-    public Rectangle? MugShotSourceRect { get; set; } = null;
-}

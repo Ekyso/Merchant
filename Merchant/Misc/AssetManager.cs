@@ -5,7 +5,6 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.GameData;
 using StardewValley.GameData.BigCraftables;
-using StardewValley.GameData.Buildings;
 using StardewValley.GameData.Characters;
 using StardewValley.GameData.Machines;
 using StardewValley.GameData.Shops;
@@ -17,11 +16,16 @@ internal static class AssetManager
     private const string Asset_TextureCraftables = $"{ModEntry.ModId}/craftables";
     internal const string Asset_Strings = $"{ModEntry.ModId}.i18n";
     internal const string Asset_CustomerData = $"{ModEntry.ModId}/Customers";
-    internal const string Asset_ShopkeepLocationData = $"{ModEntry.ModId}/ShopkeepLocations";
+    internal const string Asset_ShopkeepContextData = $"{ModEntry.ModId}/ShopkeepContexts";
+    internal const string Asset_TourismData = $"{ModEntry.ModId}/Customers";
+
     internal const string CashRegisterId = $"{ModEntry.ModId}_CashRegister";
     internal const string CashRegisterQId = $"(BC){ModEntry.ModId}_CashRegister";
     internal const string ContextTag_CashRegister = $"{ModEntry.ModId}_cash_register";
     internal const string DoorbellCue = $"{ModEntry.ModId}_doorbell";
+    internal const string MapProp_EntryPoint = $"{ModEntry.ModId}_EntryPoint";
+    internal const string MapProp_ShopkeepContextId = $"{ModEntry.ModId}_ShopkeepContextId";
+    internal const string Default_TourismWave = "Default";
 
     private const AssetEditPriority ReallyEarly = AssetEditPriority.Early - 100;
 
@@ -35,12 +39,14 @@ internal static class AssetManager
         return null;
     }
 
-    private static Dictionary<string, ShopkeepLocationData>? shopkeepLocData = null;
+    private static Dictionary<string, ShopkeepContextData>? shopkeepLocData = null;
 
-    public static ShopkeepLocationData? GetShopkeepLocationData(string key)
+    public static ShopkeepContextData? GetShopkeepContextData(string? key)
     {
-        shopkeepLocData ??= Game1.content.Load<Dictionary<string, ShopkeepLocationData>>(Asset_ShopkeepLocationData);
-        if (shopkeepLocData.TryGetValue(key, out ShopkeepLocationData? data))
+        if (key == null)
+            return null;
+        shopkeepLocData ??= Game1.content.Load<Dictionary<string, ShopkeepContextData>>(Asset_ShopkeepContextData);
+        if (shopkeepLocData.TryGetValue(key, out ShopkeepContextData? data))
             return data;
         return null;
     }
@@ -71,7 +77,7 @@ internal static class AssetManager
         }
         if (
             e.NamesWithoutLocale.Any(name =>
-                name.IsEquivalentTo(Asset_ShopkeepLocationData) || name.IsEquivalentTo("Data/Buildings")
+                name.IsEquivalentTo(Asset_ShopkeepContextData) || name.IsEquivalentTo("Data/Buildings")
             )
         )
         {
@@ -102,13 +108,9 @@ internal static class AssetManager
         {
             e.Edit(Edit_Events_FishShop, AssetEditPriority.Default);
         }
-        else if (name.IsEquivalentTo(Asset_ShopkeepLocationData))
+        else if (name.IsEquivalentTo(Asset_ShopkeepContextData))
         {
-            e.LoadFromModFile<Dictionary<string, ShopkeepLocationData>>(
-                "assets/data_shopkeep_locations.json",
-                AssetLoadPriority.Exclusive
-            );
-            e.Edit(Edit_ShopkeepLocations, ReallyEarly);
+            e.LoadFrom(() => new Dictionary<string, ShopkeepContextData>(), AssetLoadPriority.Exclusive);
         }
         else if (name.IsEquivalentTo(Asset_CustomerData))
         {
@@ -133,17 +135,6 @@ internal static class AssetManager
             {
                 e.LoadFromModFile<Dictionary<string, string>>("i18n/default/strings.json", AssetLoadPriority.Exclusive);
             }
-        }
-    }
-
-    private static void Edit_ShopkeepLocations(IAssetData asset)
-    {
-        IDictionary<string, ShopkeepLocationData> data = asset.AsDictionary<string, ShopkeepLocationData>().Data;
-        foreach ((string key, BuildingData buildingData) in Game1.buildingData)
-        {
-            if (buildingData.IndoorMap == null)
-                continue;
-            data.TryAdd(key, new());
         }
     }
 

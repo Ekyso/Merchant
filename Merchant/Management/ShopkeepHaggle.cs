@@ -241,7 +241,7 @@ public sealed record ShopkeepHaggle(
         thing.modData[GameDelegates.ModData_SoldPrice] = pickedPrice.ToString();
         thing.modData[GameDelegates.ModData_SoldBuyer] = Buyer.Name;
         TriggerActionManager.Raise(
-            GameDelegates.Merchant_Sold,
+            GameDelegates.Trigger_Merchant_Sold,
             location: Buyer.currentLocation,
             player: Player,
             targetItem: thing

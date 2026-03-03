@@ -15,7 +15,7 @@ public interface ITableShim
         Furniture table,
         Farmer player,
         List<Point> reachableTiles,
-        ShopkeepLocationData? shopkeepLocationData,
+        ShopkeepContextData? shopkeepContextData,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     );
     bool TryRemoveItemFromTable(Furniture table, Item item, int idx);
@@ -33,7 +33,7 @@ public sealed class TableShimBase : ITableShim
         Furniture table,
         Farmer player,
         List<Point> reachableTiles,
-        ShopkeepLocationData? shopkeepLocationData,
+        ShopkeepContextData? shopkeepContextData,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     )
     {
@@ -61,7 +61,7 @@ public sealed class TableShimBase : ITableShim
             return true;
         }
 
-        forSaleTargets = [new(heldObj, table, browseAround, shopkeepLocationData?.GetThemedBoostForItem(heldObj))];
+        forSaleTargets = [new(heldObj, table, browseAround, shopkeepContextData?.GetThemedBoostForItem(heldObj))];
         return true;
     }
 
@@ -106,7 +106,7 @@ public sealed class TableShimFF(IFurnitureFrameworkAPI ffApi) : ITableShim
         Furniture table,
         Farmer player,
         List<Point> reachableTiles,
-        ShopkeepLocationData? shopkeepLocationData,
+        ShopkeepContextData? shopkeepContextData,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     )
     {
@@ -115,7 +115,7 @@ public sealed class TableShimFF(IFurnitureFrameworkAPI ffApi) : ITableShim
                 table,
                 player,
                 reachableTiles,
-                shopkeepLocationData,
+                shopkeepContextData,
                 out forSaleTargets
             );
 
@@ -139,7 +139,7 @@ public sealed class TableShimFF(IFurnitureFrameworkAPI ffApi) : ITableShim
                 forSaleTargets.Add(null);
                 continue;
             }
-            forSaleTargets.Add(new(item, table, browseAround, shopkeepLocationData?.GetThemedBoostForItem(item), i));
+            forSaleTargets.Add(new(item, table, browseAround, shopkeepContextData?.GetThemedBoostForItem(item), i));
         }
         return forSaleTargets.Count > 0;
     }

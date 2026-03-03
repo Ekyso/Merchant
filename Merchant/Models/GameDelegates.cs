@@ -1,24 +1,38 @@
 using Merchant.Management;
 using Microsoft.Xna.Framework;
 using StardewValley;
+using StardewValley.Delegates;
 using StardewValley.Triggers;
 
 namespace Merchant.Models;
 
 public static class GameDelegates
 {
-    private const string TileAction_CashRegister = $"{ModEntry.ModId}_CashRegister";
     internal const string InteractMethod =
         $"Merchant.Models.{nameof(GameDelegates)}, Merchant: {nameof(InteractCashRegister)}";
-    internal const string Merchant_Sold = $"{ModEntry.ModId}_Sold";
+    private const string TileAction_CashRegister = $"{ModEntry.ModId}_CashRegister";
+    private const string GSQ_BOOK_SELLER_IN_TOWN = $"{ModEntry.ModId}_BOOK_SELLER_IN_TOWN";
+    internal const string Trigger_Merchant_Sold = $"{ModEntry.ModId}_Sold";
     internal const string ModData_SoldPrice = $"{ModEntry.ModId}/Sold/Price";
     internal const string ModData_SoldBuyer = $"{ModEntry.ModId}/Sold/Buyer";
 
     public static void Register()
     {
         GameLocation.RegisterTileAction(TileAction_CashRegister, TileActionCashRegister);
-        TriggerActionManager.RegisterTrigger(Merchant_Sold);
+        TriggerActionManager.RegisterTrigger(Trigger_Merchant_Sold);
+        GameStateQuery.Register(GSQ_BOOK_SELLER_IN_TOWN, BOOK_SELLER_IN_TOWN);
     }
+
+    private static bool BOOK_SELLER_IN_TOWN(string[] query, GameStateQueryContext context)
+    {
+        return Utility.getDaysOfBooksellerThisSeason().Contains(Game1.dayOfMonth);
+    }
+
+    private static bool TileActionCashRegister(GameLocation location, string[] args, Farmer player, Point point) =>
+        ShowMerchantMenu(location, player, point);
+
+    public static bool InteractCashRegister(SObject machine, GameLocation location, Farmer player) =>
+        ShowMerchantMenu(location, player, machine.TileLocation.ToPoint());
 
     public static bool ShowMerchantMenu(GameLocation location, Farmer player, Point cashRegisterPoint)
     {
@@ -66,10 +80,4 @@ public static class GameDelegates
         );
         return true;
     }
-
-    private static bool TileActionCashRegister(GameLocation location, string[] args, Farmer player, Point point) =>
-        ShowMerchantMenu(location, player, point);
-
-    public static bool InteractCashRegister(SObject machine, GameLocation location, Farmer player) =>
-        ShowMerchantMenu(location, player, machine.TileLocation.ToPoint());
 }
