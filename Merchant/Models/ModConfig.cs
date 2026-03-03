@@ -1,6 +1,7 @@
 using Merchant.ModIntegration;
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
+using StardewValley;
 
 namespace Merchant.Models;
 
@@ -85,5 +86,16 @@ public sealed class ModConfig
             I18n.Config_HaggleUiOffset_Name,
             I18n.Config_HaggleUiOffset_Desc
         );
+
+        // gmcm.AddNumberOption(
+        //     mod,
+        //     () => Game1.player.difficultyModifier,
+        //     (value) => Game1.player.difficultyModifier = value,
+        //     () => Game1.content.LoadString("Strings\\UI:Character_Difficulty"),
+        //     () => Game1.content.LoadString("Strings\\UI:AGO_ProfitMargin_Tooltip"),
+        //     min: 0f,
+        //     max: 1f,
+        //     interval: 0.01f
+        // );
     }
 }

@@ -170,8 +170,14 @@ public sealed record ShopkeepBrowsing(
         floorDecorCount += location.terrainFeatures.Count();
 
         // customers
+        HashSet<string> excludingSet = location.characters.Select(chara => chara.Name).ToHashSet();
+
         int customerCount = Math.Min(32, Math.Min(forSaleTables.Count, 4 + (ModEntry.ProgressData?.Logs.Count ?? 0)));
-        List<CustomerActor> waitingActors = ModEntry.FriendEntries.MakeCustomerActors(customerCount, entryPoint);
+        List<CustomerActor> waitingActors = ModEntry.FriendEntries.MakeCustomerActors(
+            customerCount,
+            entryPoint,
+            excludingSet
+        );
         Random.Shared.ShuffleInPlace(waitingActors);
 
         ShopBonusStats bonusStats = new(

@@ -52,7 +52,7 @@ public static class GameDelegates
             ?? false
         )
         {
-            responses.Add(new("merchant_sessionlog", I18n.Menu_SessionLog(logIdx + 1)));
+            responses.Add(new("merchant_sessionlog", I18n.Menu_SessionLog()));
         }
         responses.Add(
             new("merchant_cancel", Game1.content.LoadString("Strings\\Locations:MineCart_Destination_Cancel"))

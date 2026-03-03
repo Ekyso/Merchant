@@ -225,6 +225,7 @@ public sealed record ShopkeepHaggle(
     {
         if (state.Current == HaggleState.Picked)
             return;
+
         pointer = targetPointer / 3;
         state.Current = HaggleState.Picked;
         SetupHaggleSuccess(PntToPrice(pointer));

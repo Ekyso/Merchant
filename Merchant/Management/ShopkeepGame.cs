@@ -475,6 +475,7 @@ public sealed class ShopkeepGame : IMinigame
         }
         else if (state.Current == GameLoopState.Haggle)
         {
+            ModEntry.Log("receiveLeftClick Pick");
             haggling?.Pick();
         }
         else if (state.Current == GameLoopState.Report)
@@ -494,6 +495,7 @@ public sealed class ShopkeepGame : IMinigame
         }
         else if (state.Current == GameLoopState.Haggle)
         {
+            ModEntry.Log("receiveRightClick Giveup");
             haggling?.Giveup();
         }
     }
@@ -512,16 +514,16 @@ public sealed class ShopkeepGame : IMinigame
         {
             if (state.Current == GameLoopState.Haggle)
             {
-                haggling?.Pick();
+                haggling?.Giveup();
                 return;
             }
         }
 
-        if (Game1.options.doesInputListContain(Game1.options.cancelButton, k))
+        if (Game1.options.doesInputListContain(Game1.options.actionButton, k))
         {
             if (state.Current == GameLoopState.Haggle)
             {
-                haggling?.Giveup();
+                haggling?.Pick();
                 return;
             }
         }

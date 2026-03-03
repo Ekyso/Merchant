@@ -15,7 +15,7 @@
   "menu.prompt": "Shopkeeping",
   "menu.start-minigame": "Open the Shop",
   "menu.check-bonus": "Decor Bonuses",
-  "menu.session-log": "Report of Session ({{idx}})",
+  "menu.session-log": "Last Session Report",
   "bonus.title": "Decorate your store to sell for higher prices!",
   "bonus.decor": "Decor:",
   "bonus.decor.values": "{{decor}} decorations / {{table}} tables ({{percent}}{{capped}})",

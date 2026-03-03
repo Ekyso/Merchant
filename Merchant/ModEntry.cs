@@ -79,10 +79,17 @@ public sealed class ModEntry : Mod
         }
 
         if (
-            Helper.ModRegistry.GetApi<IFurnitureFrameworkAPI>("leroymilo.FurnitureFramework")
-            is IFurnitureFrameworkAPI ffApi
+            (
+                Helper
+                    .ModRegistry.Get("leroymilo.FurnitureFramework")
+                    ?.Manifest.Version.IsNewerThan(new SemanticVersion("3.3.0"))
+                ?? false
+            )
+            && Helper.ModRegistry.GetApi<IFurnitureFrameworkAPI>("leroymilo.FurnitureFramework")
+                is IFurnitureFrameworkAPI ffApi
         )
         {
+            Log($"Using FurnitureFramework table shim");
             tableShim = new TableShimFF(ffApi);
         }
 

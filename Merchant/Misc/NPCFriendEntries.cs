@@ -22,21 +22,19 @@ public abstract record BaseFriendEntry(NPC Npc, BaseCustomerData? BaseCxData, Fr
 
     public abstract int GetGiftTasteForSaleItem(ForSaleTarget forSale);
 
-    public abstract bool WillComeToShop(GameStateQueryContext context);
+    public virtual bool WillComeToShop(GameStateQueryContext context)
+    {
+        if (BaseCxData == null)
+            return true;
+        if (BaseCxData.Condition == null)
+            return true;
+        return GameStateQuery.CheckConditions(BaseCxData.Condition, context);
+    }
 }
 
 public sealed record FriendEntry(NPC Npc, CustomerData? CxData, Friendship? Fren, int MaxHeartCount)
     : BaseFriendEntry(Npc, CxData, Fren, MaxHeartCount)
 {
-    public override bool WillComeToShop(GameStateQueryContext context)
-    {
-        if (CxData == null)
-            return true;
-        if (CxData.Condition == null)
-            return true;
-        return GameStateQuery.CheckConditions(CxData.Condition, context);
-    }
-
     public override float GetHaggleBaseTargetPointer(ForSaleTarget forSale)
     {
         float haggleBaseTarget = FrenPoints <= 1 ? 0.15f : 0.15f + MathF.Log10(FrenPoints / 2000f) * 0.25f;
@@ -78,26 +76,20 @@ public sealed record FriendEntry(NPC Npc, CustomerData? CxData, Friendship? Fren
     }
 }
 
-public sealed record TouristFriendEntry(NPC Npc, TouristData TrstData) : BaseFriendEntry(Npc, TrstData, null, -2)
+public sealed record TouristFriendEntry(NPC Npc, TouristData TrstData, TourismWaveData WaveData)
+    : BaseFriendEntry(Npc, TrstData, null, -2)
 {
-    public override bool WillComeToShop(GameStateQueryContext context)
-    {
-        throw new NotImplementedException();
-    }
+    public override float GetHaggleBaseTargetPointer(ForSaleTarget forSale) => 0.6f;
+
+    public override float GetHaggleTargetOverRange(ForSaleTarget forSale) => 0.4f;
 
     public override int GetGiftTasteForSaleItem(ForSaleTarget forSale)
     {
-        throw new NotImplementedException();
-    }
-
-    public override float GetHaggleBaseTargetPointer(ForSaleTarget forSale)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override float GetHaggleTargetOverRange(ForSaleTarget forSale)
-    {
-        throw new NotImplementedException();
+        if (TrstData.DesiredContextTags?.All(forSale.Thing.HasContextTag) ?? false)
+            return NPC.gift_taste_like;
+        if (WaveData.DesiredContextTags?.All(forSale.Thing.HasContextTag) ?? false)
+            return NPC.gift_taste_like;
+        return NPC.gift_taste_hate;
     }
 }
 
@@ -112,7 +104,13 @@ internal class NPCFriendEntries(Farmer player)
         bisect = -1;
     }
 
-    private void PickNRandomNPCs(ref List<CustomerActor> picked, Point entryPoint, int count, bool bestFriendsOnly)
+    private void PickNRandomNPCs(
+        ref List<CustomerActor> picked,
+        Point entryPoint,
+        int count,
+        bool bestFriendsOnly,
+        HashSet<string> excluding
+    )
     {
         if (count <= 0)
             return;
@@ -138,7 +136,9 @@ internal class NPCFriendEntries(Farmer player)
         {
             FriendEntry friend = sortedFriends[ranges[i]];
             if (
-                !friend.Npc.IsInvisible && (friend.CxData == null || Random.Shared.NextSingle() <= friend.CxData.Chance)
+                !friend.Npc.IsInvisible
+                && !excluding.Contains(friend.Npc.Name)
+                && (friend.CxData == null || Random.Shared.NextSingle() <= friend.CxData.Chance)
             )
             {
                 picked.Add(new(friend, entryPoint));
@@ -146,13 +146,13 @@ internal class NPCFriendEntries(Farmer player)
         }
     }
 
-    internal List<CustomerActor> MakeCustomerActors(int maxCount, Point entryPoint)
+    internal List<CustomerActor> MakeCustomerActors(int maxCount, Point entryPoint, HashSet<string> excluding)
     {
         int bffs = Math.Max(1, maxCount / 3);
         List<CustomerActor> pickedActors = [];
-        PickNRandomNPCs(ref pickedActors, entryPoint, bffs, true);
+        PickNRandomNPCs(ref pickedActors, entryPoint, bffs, true, excluding);
         ModEntry.Log($"Picked {pickedActors.Count}/{maxCount} customers (bffs {sortedFriends?.Count - bisect})");
-        PickNRandomNPCs(ref pickedActors, entryPoint, maxCount - pickedActors.Count, false);
+        PickNRandomNPCs(ref pickedActors, entryPoint, maxCount - pickedActors.Count, false, excluding);
         ModEntry.Log($"Picked {pickedActors.Count}/{maxCount} customers");
         return pickedActors;
     }

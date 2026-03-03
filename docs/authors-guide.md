@@ -1,6 +1,12 @@
-## FAQ/Author's Guide
+## Author's Guide
+
+Mod authors can interact with merchant by providing some specific data.
+
+## `mushymato.Merchant/Customers`
 
 There's a few things you can customize for by adding an entry to `mushymato.Merchant/Customers` with your NPC's internal id.
+
+[Example](../Merchant.Examples/data/haggle_dialogue.json)
 
 ### Haggle Dialogue
 
@@ -15,8 +21,11 @@ You can `{0}` for item name and `{1}` for the current price.
 
 Tokenized text is also supported and resolves before substitutions.
 
-### Condition
+### Condition and Chance
 
 By default, only social NPCs that the player has met may come and buy things from a player's shop.
 
 You can change when exactly the NPCs come and go by using the `Condition` field.
+
+Each customer also has a `Chance`, which is checked after their condition is confirmed true.
+This can be used to reduce how often a particular customer frequent the shop.
