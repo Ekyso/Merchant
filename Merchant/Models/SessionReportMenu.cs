@@ -12,6 +12,7 @@ public sealed class SessionReportMenu : IClickableMenu
     private const int CELL_HEIGHT = 80;
     private const int ROWS = 8;
     private const int COLS = 4;
+    private const int BASE_CC_ID = 100;
 
     public sealed record SoldRecordDisplay(
         SoldRecord Record,
@@ -76,7 +77,7 @@ public sealed class SessionReportMenu : IClickableMenu
         }
     }
 
-    private readonly int scrollIdx = 0;
+    private int scrollIdx = 0;
     private readonly List<SoldRecordDisplay> soldRecordDisplays = [];
     private readonly List<SoldRecordComponent> soldRecordCC = [];
     private SoldRecordDisplay? hoveredDisplay = null;
@@ -86,43 +87,55 @@ public sealed class SessionReportMenu : IClickableMenu
         return new(sessionLog);
     }
 
-    private readonly string totalEarningsString;
-
     public SessionReportMenu(ShopkeepSessionLog sessionLog)
         : base(0, 0, CELL_WIDTH * COLS, CELL_HEIGHT * ROWS, true)
     {
-        this.totalEarningsString = I18n.Report_TotalEarnings(sessionLog.Earnings);
-
         int maxY = 0;
-        for (int row = 1; row < ROWS; row++)
+        for (int row = 0; row < ROWS; row++)
         {
             for (int col = 0; col < COLS; col++)
             {
                 int idx = col + row * COLS;
-                if (idx >= sessionLog.Sales.Count)
-                    break;
+                // if (idx >= sessionLog.Sales.Count)
+                //     break;
 
                 int x = xPositionOnScreen + col * CELL_WIDTH;
                 int y = yPositionOnScreen + row * CELL_HEIGHT;
                 maxY = Math.Max(maxY, row * CELL_HEIGHT);
 
-                int myID = 100 + idx;
+                int myID = BASE_CC_ID + idx;
 
                 soldRecordCC.Add(
                     new(new(x, y, CELL_WIDTH, CELL_HEIGHT), $"{row}x{col}")
                     {
                         myID = myID,
-                        upNeighborID = row > 0 ? myID - COLS : ClickableComponent.ID_ignore,
+                        upNeighborID = row > 0 ? myID - COLS : ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
                         upNeighborImmutable = true,
-                        leftNeighborID = col > 0 ? myID - 1 : ClickableComponent.ID_ignore,
-                        rightNeighborID = col < COLS - 1 ? myID + 1 : ClickableComponent.ID_ignore,
-                        downNeighborID = row < COLS ? myID + COLS : ClickableComponent.ID_ignore,
+                        leftNeighborID = col > 0 ? myID - 1 : ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
+                        rightNeighborID = col < COLS - 1 ? myID + 1 : ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
+                        downNeighborID = row < ROWS - 1 ? myID + COLS : ClickableComponent.CUSTOM_SNAP_BEHAVIOR,
                         downNeighborImmutable = true,
                     }
                 );
             }
         }
 
+        NewMethod(sessionLog);
+        NewMethod(sessionLog);
+        NewMethod(sessionLog);
+        NewMethod(sessionLog);
+        NewMethod(sessionLog);
+
+        Recenter();
+        if (Game1.options.snappyMenus && Game1.options.gamepadControls)
+        {
+            populateClickableComponentList();
+            snapToDefaultClickableComponent();
+        }
+    }
+
+    private void NewMethod(ShopkeepSessionLog sessionLog)
+    {
         foreach (SoldRecord record in sessionLog.Sales)
         {
             Item soldItem = record.CreateReprItem();
@@ -141,13 +154,6 @@ public sealed class SessionReportMenu : IClickableMenu
                 mugshotSourceRect = new(0, 0, 16, 24);
             }
             soldRecordDisplays.Add(new(record, soldItem, characterName, sprite, mugshotSourceRect));
-        }
-
-        Recenter();
-        if (Game1.options.snappyMenus && Game1.options.gamepadControls)
-        {
-            populateClickableComponentList();
-            snapToDefaultClickableComponent();
         }
     }
 
@@ -180,7 +186,7 @@ public sealed class SessionReportMenu : IClickableMenu
         {
             SoldRecordComponent comp = soldRecordCC[i];
             comp.bounds.X = xPositionOnScreen + i % COLS * CELL_WIDTH;
-            comp.bounds.Y = yPositionOnScreen + (i / COLS + 1) * CELL_HEIGHT;
+            comp.bounds.Y = yPositionOnScreen + i / COLS * CELL_HEIGHT;
         }
     }
 
@@ -208,10 +214,48 @@ public sealed class SessionReportMenu : IClickableMenu
         hoveredDisplay = null;
     }
 
+    public override void receiveScrollWheelAction(int direction)
+    {
+        ScrollGrid(direction);
+        base.receiveScrollWheelAction(direction);
+    }
+
+    protected override void customSnapBehavior(int direction, int oldRegion, int oldID)
+    {
+        if (oldID >= BASE_CC_ID && oldID < BASE_CC_ID + COLS)
+        {
+            ScrollGrid(1);
+        }
+        else if (oldID >= BASE_CC_ID + COLS * (ROWS - 1))
+        {
+            ScrollGrid(-1);
+        }
+    }
+
+    public bool ScrollGrid(int direction)
+    {
+        bool scrolled = false;
+        if (direction > 0 && scrollIdx > ROWS)
+        {
+            scrollIdx -= ROWS;
+            scrolled = true;
+        }
+        else if (direction < 0 && scrollIdx < Math.Max(0, soldRecordDisplays.Count - soldRecordCC.Count))
+        {
+            scrollIdx += ROWS;
+            scrolled = true;
+        }
+        ModEntry.Log($"{direction} : {scrollIdx}");
+        if (scrolled)
+        {
+            Game1.playSound("shiny4");
+        }
+        return scrolled;
+    }
+
     public override void draw(SpriteBatch b)
     {
         drawTextureBox(b, xPositionOnScreen - 20, yPositionOnScreen - 20, width + 40, height + 40, Color.White);
-        SpriteText.drawString(b, totalEarningsString, xPositionOnScreen, yPositionOnScreen);
         foreach ((SoldRecordComponent comp, SoldRecordDisplay displ) in IterateVisibleSoldRecord())
         {
             comp.Draw(b, displ);

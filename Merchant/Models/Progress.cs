@@ -63,17 +63,6 @@ public sealed class ShopkeepSessionLog
     public bool IsAutoShopkeep { get; set; } = false;
     public int Date { get; set; } = 0; // days played
     public List<SoldRecord> Sales { get; set; } = [];
-
-    internal uint Earnings
-    {
-        get
-        {
-            uint earnings = 0;
-            foreach (SoldRecord sale in Sales)
-                earnings += sale.Price;
-            return earnings;
-        }
-    }
 }
 
 public sealed class MerchantProgressData

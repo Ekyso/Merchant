@@ -46,7 +46,7 @@ public sealed record ShopkeepBrowsing(
     Farmer Player,
     Point EntryPoint,
     List<Point> ReachableTiles,
-    List<CustomerActor> CustomerActors,
+    Queue<CustomerActor> WaitingActors,
     List<ForSaleTarget> ForSaleTargets,
     ShopBonusStats ShopBonus
 )
@@ -162,7 +162,8 @@ public sealed record ShopkeepBrowsing(
 
         // customers
         int customerCount = Math.Min(32, Math.Min(forSaleTables.Count, 4 + (ModEntry.ProgressData?.Logs.Count ?? 0)));
-        List<CustomerActor> customerActors = ModEntry.FriendEntries.MakeCustomerActors(customerCount, entryPoint);
+        List<CustomerActor> waitingActors = ModEntry.FriendEntries.MakeCustomerActors(customerCount, entryPoint);
+        Random.Shared.ShuffleInPlace(waitingActors);
 
         ShopBonusStats bonusStats = new(
             standingDecorCount,
@@ -173,7 +174,15 @@ public sealed record ShopkeepBrowsing(
             shopkeepLocationData
         );
 
-        browsing = new(location, player, entryPoint, reachableTiles, customerActors, forSaleTables, bonusStats);
+        browsing = new(
+            location,
+            player,
+            entryPoint,
+            reachableTiles,
+            new Queue<CustomerActor>(waitingActors),
+            forSaleTables,
+            bonusStats
+        );
         return true;
     }
 
@@ -204,15 +213,7 @@ public sealed record ShopkeepBrowsing(
         return 2000;
     }
 
-    private readonly Queue<CustomerActor> waitingActors = ShuffleWaitingActors(CustomerActors);
     private readonly List<CustomerActor> dispatchedActors = [];
-
-    public static Queue<CustomerActor> ShuffleWaitingActors(List<CustomerActor> customerActors)
-    {
-        customerActors = customerActors.ToList();
-        Random.Shared.ShuffleInPlace(customerActors);
-        return new(customerActors);
-    }
 
     public bool Update(GameTime time, ref ShopkeepHaggle? haggling)
     {
@@ -222,7 +223,7 @@ public sealed record ShopkeepBrowsing(
             return true;
         }
 
-        if (waitingActors.Count == 0 && dispatchedActors.All(actor => actor.IsLeavingOrFinished && !actor.IsEmoting))
+        if (WaitingActors.Count == 0 && dispatchedActors.All(actor => actor.IsLeavingOrFinished && !actor.IsEmoting))
         {
             ModEntry.Log("Browsing finished reason: all actors are leaving");
             state.SetAndLock(BrowsingState.Finished);
@@ -259,7 +260,7 @@ public sealed record ShopkeepBrowsing(
         {
             state.Current = BrowsingState.Waiting;
             AddNewCustomer();
-            if (waitingActors.Any())
+            if (WaitingActors.Any())
             {
                 state.SetNext(BrowsingState.NewCustomer, newCustomerCooldown + Random.Shared.Next(2000));
             }
@@ -291,11 +292,11 @@ public sealed record ShopkeepBrowsing(
 
     private void AddNewCustomer()
     {
-        if (!waitingActors.TryDequeue(out CustomerActor? nextActor))
+        if (!WaitingActors.TryDequeue(out CustomerActor? nextActor))
         {
             return;
         }
-        ModEntry.Log($"AddNewCustomer: {nextActor.Name}, ({waitingActors.Count} remaining)");
+        ModEntry.Log($"AddNewCustomer: {nextActor.Name}, ({WaitingActors.Count} remaining)");
         dispatchedActors.Add(nextActor);
         nextActor.EnterShop(Location);
         Game1.playSound(AssetManager.DoorbellCue, 1100 + (int)(300 * Random.Shared.NextSingle()));
@@ -303,7 +304,7 @@ public sealed record ShopkeepBrowsing(
 
     internal void Cleanup()
     {
-        waitingActors.Clear();
+        WaitingActors.Clear();
         dispatchedActors.Clear();
     }
 
