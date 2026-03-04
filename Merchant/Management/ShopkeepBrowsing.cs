@@ -219,17 +219,7 @@ public sealed record ShopkeepBrowsing(
     }
 
     private readonly StateManager<BrowsingState> state = new(BrowsingState.NewCustomer, nameof(BrowsingState));
-    private readonly int newCustomerCooldown = GetNewCustomerCooldown(Location);
-
-    private static int GetNewCustomerCooldown(GameLocation location)
-    {
-        // TODO: formalize these into data assets
-        if (location.IsRainingHere())
-            return 4000;
-        if (location.IsWinterHere() && (Game1.dayOfMonth >= 22 || Game1.dayOfMonth < 25))
-            return 1000;
-        return 2000;
-    }
+    private const int newCustomerCooldown = 2000;
 
     private readonly List<CustomerActor> dispatchedActors = [];
 

@@ -63,7 +63,7 @@ public sealed record FriendEntry(NPC Npc, CustomerData? CxData, Friendship? Fren
                 haggleBaseTarget += 0.15f;
                 break;
             case NPC.gift_taste_dislike:
-                haggleBaseTarget -= 0.3f;
+                haggleBaseTarget -= 0.15f;
                 break;
         }
         ModEntry.Log($"haggleBaseTarget: {haggleBaseTarget}");
@@ -72,7 +72,7 @@ public sealed record FriendEntry(NPC Npc, CustomerData? CxData, Friendship? Fren
 
     public override float GetHaggleTargetOverRange(ForSaleTarget forSale)
     {
-        return FrenPercent * 0.2f + 0.2f * Random.Shared.NextSingle();
+        return 0.15f + FrenPercent * 0.2f + 0.15f * Random.Shared.NextSingle();
     }
 
     private readonly Dictionary<ForSaleTarget, int> cachedGiftTastes = [];

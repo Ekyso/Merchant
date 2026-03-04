@@ -30,11 +30,11 @@ What price you actually get is a combination of several factors:
 1. Minimum and maximum multiplier (i.e. the start and end of the haggle bar):
     - Entirely decided by your decor bonus, you can reach up to **1.00x~2.50x** with a fully decorated shop.
 2. Starting target price (i.e. where the customer's sprite is at on the bar):
-    - Base: 10%~25%
-    - Friendship with customer: up to 10%
-    - Gift taste (Loved: +30%, Liked: +15%, Neutral: 0%, Disliked: -20%, Hated: won't buy)
+    - Base: 0%~15%
+    - Friendship with customer: up to 20%
+    - Gift taste (Loved: +30%, Liked: +15%, Neutral: 0%, Disliked: -15%, Hated: won't buy)
 3. Willingness to Haggle (i.e. the barrier above which negotiation does not work):
-    - Base: 15%~30%
+    - Base: 10%~30%
     - Friendship with customer: up to 20%
 4. Themed Bonuses:
     - These apply on a per building and per item basis, and increases the minimum multiplier.
