@@ -124,12 +124,7 @@ internal static class AssetManager
         }
         else if (name.IsEquivalentTo(Asset_CustomerData))
         {
-            // e.LoadFromModFile<Dictionary<string, CustomerData>>(
-            //     "assets/data_customers.json",
-            //     AssetLoadPriority.Exclusive
-            // );
-            // e.Edit(Edit_CustomerData, ReallyEarly);
-            e.LoadFrom(Load_CustomerData, AssetLoadPriority.Exclusive);
+            e.LoadFrom(Load_Customers, AssetLoadPriority.Exclusive);
         }
         else if (name.IsEquivalentTo(Asset_Tourists))
         {
@@ -253,7 +248,7 @@ internal static class AssetManager
         };
     }
 
-    private static object Load_CustomerData()
+    private static Dictionary<string, CustomerData> Load_Customers()
     {
         Dictionary<string, CustomerData> customerData = [];
         foreach ((string key, CharacterData charaData) in Game1.characterData)
@@ -278,7 +273,7 @@ internal static class AssetManager
                 },
             },
         };
-        customerData["Geroge"] = new() { Condition = "FALSE" };
+        customerData["George"] = new() { Condition = "FALSE" };
         customerData["Dwarf"] = new() { Condition = "FALSE" };
         customerData["Sandy"] = new() { Chance = 0.5f };
         customerData["Wizard"] = new() { Chance = 0.2f };
