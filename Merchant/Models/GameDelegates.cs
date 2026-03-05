@@ -66,7 +66,7 @@ public static class GameDelegates
         );
 
         location.createQuestionDialogue(
-            I18n.Menu_Prompt(),
+            I18n.Minigame_Id(),
             responses.ToArray(),
             (who, response) =>
             {
