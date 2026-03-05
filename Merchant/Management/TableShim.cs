@@ -14,7 +14,7 @@ public interface ITableShim
     bool TryGetForSaleTargets(
         Furniture table,
         Farmer player,
-        List<Point> reachableTiles,
+        HashSet<Point> reachableTiles,
         List<ShopkeepThemeBoostData>? themeBoostDatas,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     );
@@ -32,7 +32,7 @@ public sealed class TableShimBase : ITableShim
     public bool TryGetForSaleTargets(
         Furniture table,
         Farmer player,
-        List<Point> reachableTiles,
+        HashSet<Point> reachableTiles,
         List<ShopkeepThemeBoostData>? themeBoostDatas,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     )
@@ -108,7 +108,7 @@ public sealed class TableShimFF(IFurnitureFrameworkAPI ffApi) : ITableShim
     public bool TryGetForSaleTargets(
         Furniture table,
         Farmer player,
-        List<Point> reachableTiles,
+        HashSet<Point> reachableTiles,
         List<ShopkeepThemeBoostData>? themeBoostDatas,
         [NotNullWhen(true)] out List<ForSaleTarget?>? forSaleTargets
     )

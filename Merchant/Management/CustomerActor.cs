@@ -11,18 +11,21 @@ using StardewValley.TokenizableStrings;
 
 namespace Merchant.Management;
 
+public sealed record LocationTopology(Point EntryPoint, HashSet<Point> ReachablePoints);
+
 public sealed class CustomerActor : NPC
 {
     internal static readonly Event BogusEvent = new();
     #region make
-    private readonly Point entryPoint;
     internal readonly BaseFriendEntry sourceFriend;
 
-    public CustomerActor(BaseFriendEntry sourceFriend, Point entryPoint)
+    private readonly LocationTopology locationTopology;
+
+    public CustomerActor(BaseFriendEntry sourceFriend, LocationTopology pathableLocation)
         : base(sourceFriend.Sprite, Vector2.Zero, 2, sourceFriend.Name)
     {
         this.sourceFriend = sourceFriend;
-        this.entryPoint = entryPoint;
+        this.locationTopology = pathableLocation;
 
         Portrait = Game1.mouseCursors;
         portraitOverridden = true;
@@ -106,6 +109,7 @@ public sealed class CustomerActor : NPC
 
     private readonly float chanceToBuy = 0.2f + 0.3f * Random.Shared.NextSingle();
     private int browsedCount = 0;
+    private int unstuckCount = 0;
     public ForSaleTarget? ForSale
     {
         get => field;
@@ -127,7 +131,7 @@ public sealed class CustomerActor : NPC
         state.Current = ActorState.Await;
         currentLocation = location;
         reloadSprite(true);
-        setTileLocation(entryPoint.ToVector2());
+        setTileLocation(locationTopology.EntryPoint.ToVector2());
         faceDirection(0);
     }
 
@@ -217,22 +221,44 @@ public sealed class CustomerActor : NPC
             }
             ForSale = nextForSale;
             ForSaleBrowsing = Random.Shared.ChooseFrom(ForSale.BrowseAround);
-            state.Current = ActorState.Move;
-            controller = new PathFindController(
-                this,
-                currentLocation,
-                ForSaleBrowsing.Value.Item1,
-                ForSaleBrowsing.Value.Item2,
-                ReachedForSaleItem
-            )
-            {
-                nonDestructivePathing = true,
-            };
+            BeginMoving();
         }
+    }
+
+    private void SetPathFindController(
+        Point endPoint,
+        int endFacingDirection,
+        PathFindController.endBehavior endBehavior
+    )
+    {
+        Stack<Point>? pathToEndPoint = Topology.FindPath(
+            locationTopology.ReachablePoints,
+            TilePoint,
+            endPoint,
+            currentLocation,
+            this,
+            10000
+        );
+        controller = new(pathToEndPoint, this, currentLocation)
+        {
+            finalFacingDirection = endFacingDirection,
+            endBehaviorFunction = endBehavior,
+            NPCSchedule = false,
+        };
+    }
+
+    private void BeginMoving()
+    {
+        if (ForSaleBrowsing == null)
+            return;
+        ModEntry.Log("BeginMoving");
+        state.Current = ActorState.Move;
+        SetPathFindController(ForSaleBrowsing.Value.Item1, ForSaleBrowsing.Value.Item2, ReachedForSaleItem);
     }
 
     private void ReachedForSaleItem(Character c, GameLocation location)
     {
+        unstuckCount = 0;
         state.Current = ActorState.Considering;
         state.SetNext(ActorState.Decide, Random.Shared.NextSingle() * 750, DecideBuy);
     }
@@ -271,10 +297,7 @@ public sealed class CustomerActor : NPC
             return;
         ForSale = null;
         state.Current = ActorState.Leaving;
-        controller = new PathFindController(this, currentLocation, entryPoint, -1, LeftTheShop)
-        {
-            nonDestructivePathing = true,
-        };
+        SetPathFindController(locationTopology.EntryPoint, -1, LeftTheShop);
     }
 
     private void LeftTheShop(Character c, GameLocation location)
@@ -288,38 +311,52 @@ public sealed class CustomerActor : NPC
 
     public override void update(GameTime time, GameLocation location)
     {
-        base.update(time, location);
-        // controller updates from vanilla
-        if (!Game1.IsMasterGame)
+        if (state.Current == ActorState.Move && controller == null)
         {
-            if (controller == null && !freezeMotion)
+            if (unstuckCount < 3)
             {
-                updateMovement(location, time);
-            }
-            if (controller != null && !freezeMotion && controller.update(time))
-            {
-                controller = null;
-            }
-        }
-        state.Update(time);
-        if (state.Current == ActorState.Leaving && TilePoint == entryPoint)
-        {
-            LeftTheShop(this, location);
-        }
-        else if (state.Current == ActorState.Move && controller == null)
-        {
-            ModEntry.Log($"Actor '{Name}' stuck in Move, do force unstuck.", LogLevel.Warn);
-            if (ForSale != null && ForSaleBrowsing != null && TilePoint != ForSaleBrowsing.Value.Item1)
-            {
-                state.Current = ActorState.Considering;
-                setTilePosition(ForSaleBrowsing.Value.Item1);
-                faceDirection(ForSaleBrowsing.Value.Item2);
-                ReachedForSaleItem(this, currentLocation);
+                unstuckCount++;
+                ModEntry.Log($"Actor '{Name}' stuck in Move, try unstuck ({unstuckCount}).");
+                if (ForSale != null && ForSaleBrowsing != null && TilePoint != ForSaleBrowsing.Value.Item1)
+                    BeginMoving();
+                else
+                    LeavingTheShop();
             }
             else
             {
-                LeavingTheShop();
+                ModEntry.Log($"Actor '{Name}' stuck in Move, do force unstuck.", LogLevel.Warn);
+                if (ForSale != null && ForSaleBrowsing != null && TilePoint != ForSaleBrowsing.Value.Item1)
+                {
+                    setTilePosition(ForSaleBrowsing.Value.Item1);
+                    faceDirection(ForSaleBrowsing.Value.Item2);
+                    ReachedForSaleItem(this, currentLocation);
+                }
+                else
+                {
+                    LeftTheShop(this, location);
+                }
             }
+        }
+
+        freezeMotion = true;
+        base.update(time, location);
+        freezeMotion = false;
+        // controller updates from vanilla
+        // if (!Game1.IsMasterGame)
+        // {
+        if (controller == null && !freezeMotion)
+        {
+            updateMovement(location, time);
+        }
+        if (controller != null && !freezeMotion && controller.update(time))
+        {
+            controller = null;
+        }
+        // }
+        state.Update(time);
+        if (state.Current == ActorState.Leaving && TilePoint == locationTopology.EntryPoint)
+        {
+            LeftTheShop(this, location);
         }
     }
 

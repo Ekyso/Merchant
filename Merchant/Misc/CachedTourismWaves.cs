@@ -57,9 +57,9 @@ internal sealed class CachedTourismWaves(Farmer player)
 
     private static void MakeTouristActor(
         TouristEntry tourist,
+        LocationTopology pathableLocation,
         List<ForSaleTarget> forSaleTargets,
         HashSet<string> excluding,
-        Point entryPoint,
         ref List<CustomerActor> pickedActors
     )
     {
@@ -71,7 +71,7 @@ internal sealed class CachedTourismWaves(Farmer player)
             return;
         if (forSaleTargets.All(forSale => tourist.GetGiftTasteForSaleItem(forSale) == NPC.gift_taste_hate))
             return;
-        pickedActors.Add(new(tourist, entryPoint));
+        pickedActors.Add(new(tourist, pathableLocation));
         excluding.Add(tourist.TrstId);
         if (tourist.TrstData.NPC != null)
             excluding.Add(tourist.TrstData.NPC);
@@ -79,7 +79,7 @@ internal sealed class CachedTourismWaves(Farmer player)
 
     internal List<CustomerActor> MakeTouristActors(
         int maxCount,
-        Point entryPoint,
+        LocationTopology locationTopology,
         List<ForSaleTarget> forSaleTargets,
         HashSet<string> excluding,
         ref List<CustomerActor> pickedActors
@@ -105,7 +105,7 @@ internal sealed class CachedTourismWaves(Farmer player)
             List<int> range = Random.Shared.GetShuffledIdx(0, wave.Tourists.Count);
             foreach (int idx in range)
             {
-                MakeTouristActor(wave.Tourists[idx], forSaleTargets, excluding, entryPoint, ref pickedActors);
+                MakeTouristActor(wave.Tourists[idx], locationTopology, forSaleTargets, excluding, ref pickedActors);
                 if (pickedActors.Count >= waveCount)
                     break;
                 if (pickedActors.Count >= maxCount)

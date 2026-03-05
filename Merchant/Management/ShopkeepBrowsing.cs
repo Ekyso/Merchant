@@ -44,7 +44,6 @@ public record ForSaleTarget(
 public sealed record ShopkeepBrowsing(
     GameLocation Location,
     Farmer Player,
-    Point EntryPoint,
     Queue<CustomerActor> WaitingActors,
     List<ForSaleTarget> ForSaleTargets,
     ShopBonusStats ShopBonus
@@ -101,23 +100,20 @@ public sealed record ShopkeepBrowsing(
         }
 
         // tile accessibility
-        if (!location.TryGetMapPropertyAs(AssetManager.MapProp_EntryPoint, out Point entryPoint))
+        if (location.warps.Count < 1)
         {
-            if (location.warps.Count < 1)
-            {
-                failReason = I18n.FailReason_NoWarpsIn();
-                return false;
-            }
-            Warp firstWarp = location.warps[0];
-            entryPoint = new(firstWarp.X, firstWarp.Y - 1);
+            failReason = I18n.FailReason_NoWarpsIn();
+            return false;
         }
+        Warp firstWarp = location.warps[0];
+        Point entryPoint = new(firstWarp.X, firstWarp.Y - 1);
         if (!Topology.IsTileStandable(location, entryPoint))
         {
             failReason = I18n.FailReason_WarpBlocked();
             return false;
         }
-        List<Point> reachableTiles = Topology.TileStandableBFS(location, entryPoint);
-        if (!reachableTiles.Any())
+        HashSet<Point> reachablePoints = Topology.TileStandableBFS(location, entryPoint);
+        if (!reachablePoints.Any())
         {
             failReason = I18n.FailReason_NoReachable();
             return false;
@@ -134,7 +130,7 @@ public sealed record ShopkeepBrowsing(
                 ModEntry.tableShim.TryGetForSaleTargets(
                     furniture,
                     player,
-                    reachableTiles,
+                    reachablePoints,
                     themeBoostDatas,
                     out List<ForSaleTarget?>? ForSaleTargets
                 )
@@ -171,13 +167,15 @@ public sealed record ShopkeepBrowsing(
 
         floorDecorCount += location.terrainFeatures.Count();
 
+        LocationTopology locationTopology = new(entryPoint, reachablePoints);
+
         HashSet<string> excludingSet = location.characters.Select(chara => chara.Name).ToHashSet();
         List<CustomerActor> waitingActors = [];
         int forSaleTargetsCount = forSaleTargets.Count;
         // tourists
         ModEntry.TourismWaves.MakeTouristActors(
             forSaleTargetsCount,
-            entryPoint,
+            locationTopology,
             forSaleTargets,
             excludingSet,
             ref waitingActors
@@ -190,7 +188,7 @@ public sealed record ShopkeepBrowsing(
         int customerCount = Math.Min(32, Math.Min(forSaleTargetsCount, 4 + ModEntry.ProgressData.Logs.Count));
         ModEntry.FriendEntries.MakeCustomerActors(
             customerCount + touristCounts,
-            entryPoint,
+            locationTopology,
             forSaleTargets,
             excludingSet,
             ref waitingActors
@@ -202,19 +200,12 @@ public sealed record ShopkeepBrowsing(
             standingDecorCount,
             forSaleTargets.Count,
             floorDecorCount,
-            reachableTiles.Count,
+            reachablePoints.Count,
             unreachableTableCount,
             themeBoostDatas
         );
 
-        browsing = new(
-            location,
-            player,
-            entryPoint,
-            new Queue<CustomerActor>(waitingActors),
-            forSaleTargets,
-            bonusStats
-        );
+        browsing = new(location, player, new Queue<CustomerActor>(waitingActors), forSaleTargets, bonusStats);
         return true;
     }
 

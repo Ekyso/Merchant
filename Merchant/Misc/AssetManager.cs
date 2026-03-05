@@ -5,6 +5,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.GameData;
 using StardewValley.GameData.BigCraftables;
+using StardewValley.GameData.Buildings;
 using StardewValley.GameData.Characters;
 using StardewValley.GameData.Machines;
 using StardewValley.GameData.Shops;
@@ -55,10 +56,13 @@ internal static class AssetManager
     internal const string CashRegisterQId = $"(BC){ModEntry.ModId}_CashRegister";
     internal const string ContextTag_CashRegister = $"{ModEntry.ModId}_cash_register";
     internal const string DoorbellCue = $"{ModEntry.ModId}_doorbell";
-    internal const string MapProp_EntryPoint = $"{ModEntry.ModId}_EntryPoint";
     internal const string Metadata_ShopkeepThemeBoosts = $"{ModEntry.ModId}/ShopkeepThemeBoosts";
     internal const string Metadata_ShopkeepCondition = $"{ModEntry.ModId}/ShopkeepCondition";
     internal const string Metadata_ShopkeepNotAllowedMessage = $"{ModEntry.ModId}/ShopkeepNotAllowedMessage";
+
+    private const string ThemeBoost_Flowers = $"{ModEntry.ModId}_Flowers";
+    private const string ThemeBoost_Eggs = $"{ModEntry.ModId}_Eggs";
+    private const string ThemeBoost_Milk = $"{ModEntry.ModId}_Milk";
 
     public static void Register()
     {
@@ -105,6 +109,10 @@ internal static class AssetManager
         else if (name.IsEquivalentTo("Data/Shops"))
         {
             e.Edit(Edit_Shops, AssetEditPriority.Default);
+        }
+        else if (name.IsEquivalentTo("Data/Buildings"))
+        {
+            e.Edit(Edit_Buildings, AssetEditPriority.Late);
         }
         else if (name.IsEquivalentTo("Data/AudioChanges"))
         {
@@ -157,10 +165,22 @@ internal static class AssetManager
     {
         return new Dictionary<string, ShopkeepThemeBoostData>()
         {
-            [$"{ModEntry.ModId}_Flowers"] = new()
+            [ThemeBoost_Flowers] = new()
             {
                 Description = $"[LocalizedText {Asset_Strings}:Theme_Flowers]",
                 ContextTags = ["flower_item"],
+                Value = 0.2f,
+            },
+            [ThemeBoost_Eggs] = new()
+            {
+                Description = $"[LocalizedText {Asset_Strings}:Theme_Eggs]",
+                ContextTags = ["egg_item"],
+                Value = 0.2f,
+            },
+            [ThemeBoost_Milk] = new()
+            {
+                Description = $"[LocalizedText {Asset_Strings}:Theme_Milk]",
+                ContextTags = ["milk_item"],
                 Value = 0.2f,
             },
         };
@@ -290,6 +310,26 @@ internal static class AssetManager
             Looped = false,
             UseReverb = true,
         };
+    }
+
+    private static void Edit_Buildings(IAssetData asset)
+    {
+        IDictionary<string, BuildingData> data = asset.AsDictionary<string, BuildingData>().Data;
+        foreach (BuildingData buildingData in data.Values)
+        {
+            if (buildingData.ValidOccupantTypes.Contains("Barn"))
+            {
+                (buildingData.Metadata ??= [])[Metadata_ShopkeepThemeBoosts] = ThemeBoost_Milk;
+            }
+            if (buildingData.ValidOccupantTypes.Contains("Coop"))
+            {
+                (buildingData.Metadata ??= [])[Metadata_ShopkeepThemeBoosts] = ThemeBoost_Eggs;
+            }
+        }
+        if (data.TryGetValue("Greenhouse", out BuildingData? buildingD))
+        {
+            (buildingD.Metadata ??= [])[Metadata_ShopkeepThemeBoosts] = ThemeBoost_Flowers;
+        }
     }
 
     private static void Edit_Shops(IAssetData asset)

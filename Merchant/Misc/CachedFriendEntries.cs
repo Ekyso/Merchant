@@ -102,9 +102,9 @@ internal sealed class CachedFriendEntries(Farmer player)
 
     private static void MakeCustomerActor(
         FriendEntry friend,
+        LocationTopology locationTopology,
         List<ForSaleTarget> forSaleTargets,
         HashSet<string> excluding,
-        Point entryPoint,
         ref List<CustomerActor> pickedActors
     )
     {
@@ -116,13 +116,13 @@ internal sealed class CachedFriendEntries(Farmer player)
             return;
         if (forSaleTargets.All(forSale => friend.GetGiftTasteForSaleItem(forSale) == NPC.gift_taste_hate))
             return;
-        pickedActors.Add(new(friend, entryPoint));
+        pickedActors.Add(new(friend, locationTopology));
         excluding.Add(friend.Name);
     }
 
     internal List<CustomerActor> MakeCustomerActors(
         int maxCount,
-        Point entryPoint,
+        LocationTopology locationTopology,
         List<ForSaleTarget> forSaleTargets,
         HashSet<string> excluding,
         ref List<CustomerActor> pickedActors
@@ -135,7 +135,7 @@ internal sealed class CachedFriendEntries(Farmer player)
         foreach (int idx in range)
         {
             FriendEntry friendEntry = sortedFriends[idx];
-            MakeCustomerActor(friendEntry, forSaleTargets, excluding, entryPoint, ref pickedActors);
+            MakeCustomerActor(friendEntry, locationTopology, forSaleTargets, excluding, ref pickedActors);
             if (pickedActors.Count >= bffs)
                 break;
         }
@@ -144,7 +144,7 @@ internal sealed class CachedFriendEntries(Farmer player)
         foreach (int idx in range)
         {
             FriendEntry friendEntry = sortedFriends[idx];
-            MakeCustomerActor(friendEntry, forSaleTargets, excluding, entryPoint, ref pickedActors);
+            MakeCustomerActor(friendEntry, locationTopology, forSaleTargets, excluding, ref pickedActors);
             if (pickedActors.Count >= maxCount)
                 break;
         }

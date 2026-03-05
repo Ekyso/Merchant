@@ -2,12 +2,13 @@ using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Extensions;
 using StardewValley.Locations;
+using StardewValley.Pathfinding;
 
 namespace Merchant.Misc;
 
 public static class Topology
 {
-    public static List<(Point, int)> FormBrowseAround(Rectangle boundingBox, List<Point> reachable)
+    public static List<(Point, int)> FormBrowseAround(Rectangle boundingBox, HashSet<Point> reachable)
     {
         List<(Point, int)> browseAround = [];
         Point pnt;
@@ -40,7 +41,7 @@ public static class Topology
         return browseAround;
     }
 
-    private static IEnumerable<Point> SurroundingTiles(Point nextPoint, int maxX, int maxY)
+    internal static IEnumerable<Point> SurroundingTiles(Point nextPoint, int maxX, int maxY)
     {
         if (nextPoint.X > 0)
             yield return new(nextPoint.X - 1, nextPoint.Y);
@@ -80,11 +81,9 @@ public static class Topology
         if (buildingTile?.Properties.ContainsKey("Passable") is true)
             return true;
 
-        // non-passable if Back layer has 'Passable' or 'NPCBarrier' property
+        // non-passable if Back layer has 'Passable' property
         xTile.Tiles.Tile? backTile = location.map.RequireLayer("Back").Tiles[(int)tile.X, (int)tile.Y];
         if (backTile?.Properties.ContainsKey("Passable") is true)
-            return false;
-        if (backTile?.Properties.ContainsKey("NPCBarrier") is true)
             return false;
 
         // else check tile indexes
@@ -108,7 +107,7 @@ public static class Topology
         return false;
     }
 
-    internal static List<Point> TileStandableBFS(
+    internal static HashSet<Point> TileStandableBFS(
         GameLocation location,
         Point startingTile,
         CollisionMask collisionMask = ~CollisionMask.Characters
@@ -140,6 +139,85 @@ public static class Topology
                 }
             }
         }
-        return tileStandableState.Where(kv => kv.Value).Select(kv => kv.Key).ToList();
+        return tileStandableState.Where(kv => kv.Value).Select(kv => kv.Key).ToHashSet();
+    }
+
+    public static readonly sbyte[,] directions = new sbyte[4, 2]
+    {
+        { -1, 0 },
+        { 1, 0 },
+        { 0, 1 },
+        { 0, -1 },
+    };
+
+    // StardewValley.Pathfinding.PathFindController.findPath
+    public static Stack<Point>? FindPath(
+        HashSet<Point> reachablePoints,
+        Point startPoint,
+        Point endPoint,
+        GameLocation location,
+        Character character,
+        int limit
+    )
+    {
+        bool flag = character is FarmAnimal farmAnimal && farmAnimal.CanSwim() && farmAnimal.isSwimming.Value;
+        PriorityQueue openList = new();
+        HashSet<int> closedList = [];
+
+        int num = 0;
+        openList.Enqueue(
+            new PathNode(startPoint.X, startPoint.Y, 0, null),
+            Math.Abs(endPoint.X - startPoint.X) + Math.Abs(endPoint.Y - startPoint.Y)
+        );
+        int layerWidth = location.map.Layers[0].LayerWidth;
+        int layerHeight = location.map.Layers[0].LayerHeight;
+        while (!openList.IsEmpty())
+        {
+            PathNode pathNode = openList.Dequeue();
+            if (PathFindController.isAtEndPoint(pathNode, endPoint, location, character))
+            {
+                return PathFindController.reconstructPath(pathNode);
+            }
+            closedList.Add(pathNode.id);
+            int num2 = (byte)(pathNode.g + 1);
+            for (int i = 0; i < 4; i++)
+            {
+                int num3 = pathNode.x + directions[i, 0];
+                int num4 = pathNode.y + directions[i, 1];
+                int item = PathNode.ComputeHash(num3, num4);
+                if (closedList.Contains(item))
+                {
+                    continue;
+                }
+                if (
+                    (num3 != endPoint.X || num4 != endPoint.Y)
+                    && (num3 < 0 || num4 < 0 || num3 >= layerWidth || num4 >= layerHeight)
+                )
+                {
+                    closedList.Add(item);
+                    continue;
+                }
+                PathNode pathNode2 = new(num3, num4, pathNode) { g = (byte)(pathNode.g + 1) };
+                // if (!flag && location.isCollidingPosition(new Rectangle(pathNode2.x * 64 + 1, pathNode2.y * 64 + 1, 62, 62), Game1.viewport, character is Farmer, 0, glider: false, character, pathfinding: true))
+                // {
+                //     closedList.Add(item);
+                //     continue;
+                // }
+                if (!flag && !reachablePoints.Contains(new(num3, num4)))
+                {
+                    closedList.Add(item);
+                    continue;
+                }
+                int priority = num2 + Math.Abs(endPoint.X - num3) + Math.Abs(endPoint.Y - num4);
+                closedList.Add(item);
+                openList.Enqueue(pathNode2, priority);
+            }
+            num++;
+            if (num >= limit)
+            {
+                return null;
+            }
+        }
+        return null;
     }
 }
