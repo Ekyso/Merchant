@@ -21,7 +21,6 @@ public abstract class BaseCustomerData
     // Will Shop
     public string? Condition { get; set; } = null;
     public float Chance { get; set; } = 1.0f;
-    public string? OverrideAppearanceId { get; set; } = null;
 
     // Haggle Dialogue
     public Dictionary<string, CustomerDialogue> Dialogue = [];
@@ -87,4 +86,6 @@ public sealed class CustomerDialogue
 public sealed class CustomerData : BaseCustomerData
 {
     public override bool IsTourist() => false;
+
+    public string? OverrideAppearanceId { get; set; } = null;
 }

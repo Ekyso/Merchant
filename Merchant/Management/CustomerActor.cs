@@ -11,28 +11,13 @@ using StardewValley.TokenizableStrings;
 
 namespace Merchant.Management;
 
-public sealed class CustomerActorPathingLocation : GameLocation
-{
-    public override bool isCollidingPosition(
-        Rectangle position,
-        xTile.Dimensions.Rectangle viewport,
-        bool isFarmer,
-        int damagesFarmer,
-        bool glider,
-        Character character
-    )
-    {
-        return false;
-    }
-}
-
 public sealed class CustomerActor : NPC
 {
     internal static readonly Event BogusEvent = new();
     #region make
     internal readonly BaseFriendEntry sourceFriend;
     private readonly LocationTopology locationTopology;
-    private readonly CustomerActorPathingLocation pathingLocation = new();
+    internal PathingLocation? pathingLocation = null;
 
     public CustomerActor(BaseFriendEntry sourceFriend, LocationTopology locationTopology)
         : base(sourceFriend.Sprite, Vector2.Zero, 2, sourceFriend.Name)
@@ -244,6 +229,8 @@ public sealed class CustomerActor : NPC
         PathFindController.endBehavior endBehavior
     )
     {
+        if (pathingLocation == null)
+            LeftTheShop(this, currentLocation);
         Stack<Point>? pathToEndPoint = Topology.FindPath(
             locationTopology.ReachablePoints,
             TilePoint,
@@ -252,7 +239,6 @@ public sealed class CustomerActor : NPC
             this,
             10000
         );
-        pathingLocation.map = currentLocation.map;
         controller = new(pathToEndPoint, this, pathingLocation)
         {
             finalFacingDirection = endFacingDirection,

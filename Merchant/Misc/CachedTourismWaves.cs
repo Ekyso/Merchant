@@ -55,6 +55,11 @@ internal sealed class CachedTourismWaves(Farmer player)
         }
     }
 
+    internal bool HasActiveWaves()
+    {
+        return ActiveWaves.Count > 1;
+    }
+
     private static void MakeTouristActor(
         TouristEntry tourist,
         LocationTopology pathableLocation,
@@ -97,7 +102,10 @@ internal sealed class CachedTourismWaves(Farmer player)
 
             int waveCount = Math.Min(
                 totalMatchingItems,
-                Random.Shared.Next(wave.WaveData.TouristMinCount, wave.WaveData.TouristMaxCount)
+                Random.Shared.Next(
+                    wave.WaveData.TouristMinCount,
+                    Math.Max(wave.WaveData.TouristMinCount, wave.WaveData.TouristMaxCount)
+                )
             );
             if (waveCount <= 0)
                 continue;

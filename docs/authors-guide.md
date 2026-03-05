@@ -1,6 +1,6 @@
 ## Author's Guide
 
-Although Merchant is not a framework mod, authors can interact with it by providing some specific data.
+Although Merchant is not a framework mod, authors can add content to it by providing some specific data.
 
 #### [`mushymato.Merchant/Customers`](./001-customers.md)
 

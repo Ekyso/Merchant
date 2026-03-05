@@ -47,7 +47,7 @@ public static class GameDelegates
             new("merchant_startgame", I18n.Menu_StartMinigame()),
             new("merchant_checkbonus", I18n.Menu_CheckBonus()),
         ];
-        if (ModEntry.TourismWaves.ActiveWaves.Any())
+        if (ModEntry.TourismWaves.HasActiveWaves())
         {
             responses.Add(new("merchant_tourism", I18n.Menu_TourismWave()));
         }

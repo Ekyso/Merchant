@@ -175,13 +175,13 @@ internal static class AssetManager
             {
                 Description = $"[LocalizedText {Asset_Strings}:Theme_Eggs]",
                 ContextTags = ["egg_item"],
-                Value = 0.2f,
+                Value = 0.1f,
             },
             [ThemeBoost_Milk] = new()
             {
                 Description = $"[LocalizedText {Asset_Strings}:Theme_Milk]",
                 ContextTags = ["milk_item"],
-                Value = 0.2f,
+                Value = 0.1f,
             },
         };
     }
@@ -220,6 +220,7 @@ internal static class AssetManager
             [$"{ModEntry.ModId}_Marcello"] = new()
             {
                 AppearsDuring = [$"{ModEntry.ModId}_BooksellerDay"],
+                ContextTags = ["book_item"],
                 DisplayName = $"[LocalizedText {Asset_Strings}:Marcello_Name]",
                 Portrait = ModEntry.HasTDITExtras ? "Portraits/Marcello" : null,
                 Sprite = "Characters/Marcello",

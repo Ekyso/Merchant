@@ -1,3 +1,4 @@
+using Merchant.Management;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Extensions;
@@ -5,6 +6,28 @@ using StardewValley.Locations;
 using StardewValley.Pathfinding;
 
 namespace Merchant.Misc;
+
+public sealed class PathingLocation(List<CustomerActor> dispatchedActors) : GameLocation
+{
+    public override bool isCollidingPosition(
+        Rectangle position,
+        xTile.Dimensions.Rectangle viewport,
+        bool isFarmer,
+        int damagesFarmer,
+        bool glider,
+        Character character
+    )
+    {
+        foreach (CustomerActor actor in dispatchedActors)
+        {
+            if (!actor.IsInvisible && actor.TilePoint == character.TilePoint && actor.isMoving())
+            {
+                return actor.Name.CompareTo(character.Name) < 0;
+            }
+        }
+        return false;
+    }
+}
 
 public sealed record LocationTopology(Point EntryPoint, HashSet<Point> ReachablePoints);
 
@@ -200,11 +223,6 @@ public static class Topology
                     continue;
                 }
                 PathNode pathNode2 = new(num3, num4, pathNode) { g = (byte)(pathNode.g + 1) };
-                // if (!flag && location.isCollidingPosition(new Rectangle(pathNode2.x * 64 + 1, pathNode2.y * 64 + 1, 62, 62), Game1.viewport, character is Farmer, 0, glider: false, character, pathfinding: true))
-                // {
-                //     closedList.Add(item);
-                //     continue;
-                // }
                 if (!flag && !reachablePoints.Contains(new(num3, num4)))
                 {
                     closedList.Add(item);

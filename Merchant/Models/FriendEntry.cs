@@ -85,7 +85,7 @@ public sealed record FriendEntry(NPC Npc, CustomerData? CxData, Friendship? Fren
 
     public override float GetHaggleTargetOverRange(ForSaleTarget forSale)
     {
-        return 0.15f + FrenPercent * 0.2f + 0.15f * Random.Shared.NextSingle();
+        return 0.1f + FrenPercent * 0.2f + 0.2f * Random.Shared.NextSingle();
     }
 
     private readonly Dictionary<ForSaleTarget, int> cachedGiftTastes = [];
@@ -156,7 +156,7 @@ public sealed record TouristEntry(string TrstId, TouristData TrstData, TourismWa
         friendEntry?.MugShotSourceRect ?? TrstData.MugShotSourceRect ?? new(0, 0, 16, 24);
     public override bool ShowShadow => TrstData.ShowShadow;
 
-    public override float GetHaggleBaseTargetPointer(ForSaleTarget forSale) => 0.6f;
+    public override float GetHaggleBaseTargetPointer(ForSaleTarget forSale) => 0.7f;
 
     public override float GetHaggleTargetOverRange(ForSaleTarget forSale) => 0.2f + 0.2f * Random.Shared.NextSingle();
 

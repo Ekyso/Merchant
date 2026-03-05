@@ -225,7 +225,15 @@ public sealed record ShopkeepBrowsing(
 
     private readonly StateManager<BrowsingState> state = new(BrowsingState.NewCustomer, nameof(BrowsingState));
     private const int newCustomerCooldown = 2000;
-
+    private PathingLocation? PathingLocation
+    {
+        get
+        {
+            field ??= new(dispatchedActors);
+            field.map = Location.map;
+            return field;
+        }
+    }
     private readonly List<CustomerActor> dispatchedActors = [];
 
     public bool Update(GameTime time, ref ShopkeepHaggle? haggling)
@@ -309,6 +317,7 @@ public sealed record ShopkeepBrowsing(
         {
             return;
         }
+        nextActor.pathingLocation = PathingLocation;
         ModEntry.Log($"AddNewCustomer: '{nextActor.Name}' ({WaitingActors.Count} remaining)");
         dispatchedActors.Add(nextActor);
         nextActor.EnterShop(Location);

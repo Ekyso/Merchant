@@ -4,11 +4,6 @@ namespace Merchant.Models;
 
 public sealed class ShopkeepThemeBoostData
 {
-    public string? Id
-    {
-        get => field ??= ToString();
-        set => field = value;
-    } = null;
     public string? Description;
     public List<string>? ContextTags { get; set; } = null;
 
@@ -20,7 +15,7 @@ public sealed class ShopkeepThemeBoostData
 
     public override string ToString()
     {
-        return string.Concat($"{Value:P2} ", ContextTags != null ? string.Join(',', ContextTags) : "ANY");
+        return string.Concat(Value.ToString(), '#', ContextTags != null ? string.Join(',', ContextTags) : "ANY");
     }
 
     private List<string[]> SplitContextTags => field ??= ContextTags.SplitContextTags();

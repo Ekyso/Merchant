@@ -5,8 +5,8 @@ The happenings of 1 shopkeeping session depends on a variety of factors. This de
 ### Decor Bonus Calculation
 
 Decor bonus is internally a number between 0.0 and 1.0 and the sum of these two values:
-- Standing decor adds up to 0.7. It is calculated as number of non-table decor / number of tables and full bonus is earned by having at least one decor per table.
-- Rug/floor adds up to 0.3. It is calculated as total tiles covered by something / (2/3 times number of reachable tiles).
+* Standing decor adds up to 0.7. It is calculated as number of non-table decor / number of tables and full bonus is earned by having at least one decor per table.
+* Rug/floor adds up to 0.3. It is calculated as total tiles covered by something / (2/3 times number of reachable tiles).
 
 The base haggle minimum multiplier is 0.5x, add 1/2 of decor bonus to get the final multiplier (i.e. up to 1.0x).
 The base haggle maximum multiplier is 0.5x, add decor bonus to get the final multiplier (i.e. up to 2.5x).
@@ -44,17 +44,22 @@ Customers will never buy items they hate. If all remaining items in the shop are
 What price you actually get is a combination of several factors:
 
 1. Minimum and maximum multiplier (i.e. the start and end of the haggle bar):
-    - Entirely decided by your decor bonus, you can reach up to **1.00x~2.50x** with a fully decorated shop.
+    * Entirely decided by your decor bonus, you can reach up to **1.00x~2.50x** with a fully decorated shop.
 2. Starting target price (i.e. where the customer's sprite is at on the bar):
-    - Base: 0%~15%
-    - Friendship with customer: up to 20%
-    - Gift taste (Loved: +30%, Liked: +15%, Neutral: 0%, Disliked: -15%, Hated: won't buy)
+    * Base: 0%~15%
+    * Friendship with customer: up to 20%
+    * Gift taste (Loved: +30%, Liked: +15%, Neutral: 0%, Disliked: -15%, Hated: won't buy)
 3. Willingness to Haggle (i.e. the barrier above which negotiation does not work):
-    - Base: 15%~30%
-    - Friendship with customer: up to 20%
-4. Themed Bonuses:
-    - These apply on a per building and per item basis, and increases the minimum multiplier up to 50%. This is visible as a bar.
+    * Base: 10%~30%
+    * Friendship with customer: up to 20%
+4. Themed Boosts:
+    * These apply on a per building and per item basis, and increases the minimum multiplier up to 50%.
+    * Only one boost can apply at a time.
+    * There are 3 built-in boosts:
+        * Greenhouse: +20% to flower items.
+        * All Coops: +10% to egg items.
+        * All Barns: +10% to milk items.
 5. Where you clicked during the minigame:
-    - Customer will only accept a price below their target.
-    - Going above the target but below the haggle line means they will consider raising prices
-    - Going above the haggle line means you lose a chance entirely.
+    * Customer will only accept a price below their target.
+    * Going above the target but below the haggle line means they will consider raising prices
+    * Going above the haggle line means you lose a chance entirely.
