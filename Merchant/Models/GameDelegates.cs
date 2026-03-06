@@ -31,12 +31,17 @@ public static class GameDelegates
 
     private static bool SOLD_PRICE(string[] query, GameStateQueryContext context)
     {
-        if (!context.TargetItem.modData.TryGetValue(ModData_SoldPrice, out string priceStr) || !uint.TryParse(priceStr, out uint price))
+        if (
+            !context.TargetItem.modData.TryGetValue(ModData_SoldPrice, out string priceStr)
+            || !uint.TryParse(priceStr, out uint price)
+        )
         {
             return false;
         }
-        if (!ArgUtility.TryGetInt(query, 1, out int minValue, out string error, name: "int minValue")
-            || !ArgUtility.TryGetOptionalInt(query, 2, out int maxValue, out error, name: "int maxValue"))
+        if (
+            !ArgUtility.TryGetInt(query, 1, out int minValue, out string error, name: "int minValue")
+            || !ArgUtility.TryGetOptionalInt(query, 2, out int maxValue, out error, name: "int maxValue")
+        )
         {
             ModEntry.Log(error, LogLevel.Error);
             return false;
