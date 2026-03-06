@@ -86,6 +86,7 @@ Feel free to translate this mod and post as separate page.
 ## Special Thanks:
 
 * [DolphinIsNotaFish](https://www.nexusmods.com/profile/DolphinIsNotaFish) for thumbnail and event help
+* [DylanJames](https://www.nexusmods.com/stardewvalley/mods/34540) for doorbell sounds from [Store Entrance Doorbells](https://www.nexusmods.com/stardewvalley/mods/34540)
 * [boxosoup](https://www.nexusmods.com/profile/boxosoup) for in-depth testing help
 * [nancyxdrewx](https://www.nexusmods.com/profile/nancyxdrewx) for cute shop graphics
 
