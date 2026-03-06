@@ -363,13 +363,33 @@ public sealed class ShopkeepGame : IMinigame
                 }
             }
 
-            // allow panning
-            // set pan if changed
-            if (panX != 0 || panY != 0)
+            int num = Game1.uiModeCount;
+            while (Game1.uiModeCount > 0)
             {
-                ModEntry.Log($"B4 {panX},{panY} -> {Game1.viewport.X},{Game1.viewport.Y}");
-                Game1.panScreen(panX * 3, panY * 3);
-                ModEntry.Log($"AF {panX},{panY} -> {Game1.viewport.X},{Game1.viewport.Y}");
+                Game1.PopUIMode();
+            }
+            if (location.map.DisplayWidth > Game1.viewport.Width && panX != 0)
+            {
+                Game1.previousViewportPosition.X = Game1.viewport.Location.X;
+                Game1.viewport.X += panX;
+                if (Game1.viewport.X < 0)
+                    Game1.viewport.X = 0;
+                if (Game1.viewport.X > location.map.DisplayWidth - Game1.viewport.Width)
+                    Game1.viewport.X = location.map.DisplayWidth - Game1.viewport.Width;
+            }
+            if (location.map.DisplayHeight > Game1.viewport.Height && panY != 0)
+            {
+                Game1.previousViewportPosition.Y = Game1.viewport.Location.Y;
+                Game1.viewport.Y += panY;
+                if (Game1.viewport.Y < 0)
+                    Game1.viewport.Y = 0;
+                if (Game1.viewport.Y > location.map.DisplayHeight - Game1.viewport.Height)
+                    Game1.viewport.Y = location.map.DisplayHeight - Game1.viewport.Height;
+            }
+            Game1.updateRaindropPosition();
+            for (int i = 0; i < num; i++)
+            {
+                Game1.PushUIMode();
             }
         }
     }
@@ -444,7 +464,7 @@ public sealed class ShopkeepGame : IMinigame
         if (haggling.Update(time))
         {
             haggling = null;
-            if (player.Stamina < 9)
+            if (player.Stamina <= STAMINA_COST_HAGGLING)
             {
                 PrepareReport();
             }

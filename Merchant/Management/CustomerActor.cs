@@ -249,7 +249,7 @@ public sealed class CustomerActor : NPC
     {
         if (ForSaleBrowsing == null)
             return;
-        ModEntry.Log("BeginMoving");
+        ModEntry.Log($"LeftTheShop {Name}");
         state.Current = ActorState.Move;
         SetPathFindController(ForSaleBrowsing.Value.Item1, ForSaleBrowsing.Value.Item2, ReachedForSaleItem);
     }
@@ -299,7 +299,7 @@ public sealed class CustomerActor : NPC
 
     private void LeftTheShop(Character c, GameLocation location)
     {
-        ModEntry.Log($"LeftTheShop {c.displayName}");
+        ModEntry.Log($"LeftTheShop {Name}");
         ForSale = null;
         state.SetAndLock(ActorState.Finished);
         Position = Vector2.Zero;

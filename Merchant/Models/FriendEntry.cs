@@ -79,7 +79,6 @@ public sealed record FriendEntry(NPC Npc, CustomerData? CxData, Friendship? Fren
                 haggleBaseTarget -= 0.15f;
                 break;
         }
-        ModEntry.Log($"haggleBaseTarget: {haggleBaseTarget}");
         return Math.Max(0f, haggleBaseTarget);
     }
 
