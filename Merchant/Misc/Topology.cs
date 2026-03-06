@@ -7,7 +7,7 @@ using StardewValley.Pathfinding;
 
 namespace Merchant.Misc;
 
-public sealed class PathingLocation(List<CustomerActor> dispatchedActors) : GameLocation
+public sealed class PathingLocation(GameLocation location, List<CustomerActor> dispatchedActors) : GameLocation
 {
     public override bool isCollidingPosition(
         Rectangle position,
@@ -18,6 +18,7 @@ public sealed class PathingLocation(List<CustomerActor> dispatchedActors) : Game
         Character character
     )
     {
+        location.isCollidingPosition(position, viewport, isFarmer, damagesFarmer, glider, character);
         foreach (CustomerActor actor in dispatchedActors)
         {
             if (!actor.IsInvisible && actor.TilePoint == character.TilePoint && actor.isMoving())

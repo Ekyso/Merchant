@@ -73,7 +73,7 @@ public sealed record ShopBonusStats(
             foreach (ShopkeepThemeBoostData boost in ThemeBoostDatas)
             {
                 sb.Append("^  ");
-                if (TokenParser.ParseText(boost.Description) is string desc)
+                if (string.Format(TokenParser.ParseText(boost.Description), boost.Value) is string desc)
                     sb.Append(desc);
                 else
                     sb.Append(boost.ToString());

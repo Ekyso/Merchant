@@ -229,7 +229,7 @@ public sealed record ShopkeepBrowsing(
     {
         get
         {
-            field ??= new(dispatchedActors);
+            field ??= new(Location, dispatchedActors);
             field.map = Location.map;
             return field;
         }

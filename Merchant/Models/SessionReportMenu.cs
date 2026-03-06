@@ -41,7 +41,7 @@ public sealed class SessionReportMenu : IClickableMenu
     public sealed class SoldRecordComponent(Rectangle bounds, string name) : ClickableComponent(bounds, name)
     {
         private const int ICON_YOFFSET = (CELL_HEIGHT - 64) / 2;
-        private const int TEXT_YOFFSET = (CELL_HEIGHT - 60) / 2;
+        private const int TEXT_YOFFSET = (CELL_HEIGHT - 56) / 2;
 
         public void Draw(SpriteBatch b, SoldRecordDisplay displ)
         {

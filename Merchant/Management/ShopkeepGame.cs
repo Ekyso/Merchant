@@ -367,7 +367,9 @@ public sealed class ShopkeepGame : IMinigame
             // set pan if changed
             if (panX != 0 || panY != 0)
             {
+                ModEntry.Log($"B4 {panX},{panY} -> {Game1.viewport.X},{Game1.viewport.Y}");
                 Game1.panScreen(panX * 3, panY * 3);
+                ModEntry.Log($"AF {panX},{panY} -> {Game1.viewport.X},{Game1.viewport.Y}");
             }
         }
     }

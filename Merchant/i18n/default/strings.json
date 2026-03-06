@@ -24,9 +24,9 @@
   "Tourism_BooksellerDay_Desc": "If you have books on sale, booklovers will visit your shop!",
   "Marcello_Name": "Marcello",
   // flower shopkeep theme boost
-  "Theme_Flowers": "Blooming: 20% boost to flowers",
-  "Theme_Eggs": "Eggcellence: 10% boost to eggs",
-  "Theme_Milk": "Farm Fresh: 10% boost to milk",
+  "Theme_Flowers": "Blooming: {0:P2} boost to flowers",
+  "Theme_Eggs": "Eggcellence: {0:P2} boost to eggs",
+  "Theme_Milk": "Farm Fresh: {0:P2} boost to milk",
   // willy event
   "WillyWalrus.Willy.01": "Ah... come in, ${lad^miss}$. Close the door behind ye...",
   "WillyWalrus.Willy.02": "Aye, that's it.",

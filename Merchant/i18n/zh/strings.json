@@ -24,9 +24,9 @@
   "Tourism_BooksellerDay_Desc": "如果你有出售书籍，阅读爱好者会光临你的店铺！",
   "Marcello_Name": "马塞罗",
   // flower shopkeep theme boost
-  "Theme_Flowers": "花朵盛开：花类物品售价增加20%",
-  "Theme_Eggs": "大满蛋：蛋类物品售价增加10%",
-  "Theme_Milk": "A42鲜奶：奶类物品售价增加10%",
+  "Theme_Flowers": "花朵盛开：花类物品售价增加{0:P2}",
+  "Theme_Eggs": "大满蛋：蛋类物品售价增加{0:P2}",
+  "Theme_Milk": "A42鲜奶：奶类物品售价增加{0:P2}",
   // willy event
   "WillyWalrus.Willy.01": "嘿… 进来吧，${小伙子^小姑娘}$。 把门关上……",
   "WillyWalrus.Willy.02": "对，就这样",

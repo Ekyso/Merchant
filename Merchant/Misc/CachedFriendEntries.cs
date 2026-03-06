@@ -131,6 +131,7 @@ internal sealed class CachedFriendEntries(Farmer player)
         Repopulate();
 
         int bffs = Math.Max(1, maxCount / 3);
+
         List<int> range = Random.Shared.GetShuffledIdx(sortedFriendsBisect, sortedFriends.Count);
         foreach (int idx in range)
         {
@@ -140,12 +141,16 @@ internal sealed class CachedFriendEntries(Farmer player)
                 break;
         }
 
+        int norms = maxCount - pickedActors.Count;
+        if (norms <= 0)
+            return pickedActors;
+
         range = Random.Shared.GetShuffledIdx(0, sortedFriends.Count);
         foreach (int idx in range)
         {
             FriendEntry friendEntry = sortedFriends[idx];
             MakeCustomerActor(friendEntry, locationTopology, forSaleTargets, excluding, ref pickedActors);
-            if (pickedActors.Count >= maxCount)
+            if (pickedActors.Count >= norms)
                 break;
         }
 

@@ -229,8 +229,6 @@ public sealed class CustomerActor : NPC
         PathFindController.endBehavior endBehavior
     )
     {
-        if (pathingLocation == null)
-            LeftTheShop(this, currentLocation);
         Stack<Point>? pathToEndPoint = Topology.FindPath(
             locationTopology.ReachablePoints,
             TilePoint,

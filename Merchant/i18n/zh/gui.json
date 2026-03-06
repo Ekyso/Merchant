@@ -22,7 +22,7 @@
   "bonus.unreachable-table": "警告：你有{{count}}个放着可售商品但客人无法抵达的桌子",
   "bonus.rug-floor": "地毯/地板:",
   "bonus.rug-floor.values": "{{decor}} 已覆盖格 / {{tiles}} 可抵达格 ({{percent}}{{capped}})",
-  "bonus.capped": " 满",
+  "bonus.capped": " =",
   "bonus.total": "总和：{{minBonus}}x - {{maxMult}}x",
   "bonus.theme-boost": "店铺主题：",
   "tourism.title": "镇上的游客为此而来：",
