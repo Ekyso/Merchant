@@ -600,5 +600,10 @@ public sealed class ShopkeepGame : IMinigame
 
     public void receiveEventPoke(int data) { }
 
+    // Android interface method
+#pragma warning disable CA1822 // Mark members as static
+    public float GetForcedScaleFactor() => 1f;
+#pragma warning restore CA1822 // Mark members as static
+
     #endregion
 }
