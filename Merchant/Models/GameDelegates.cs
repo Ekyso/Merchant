@@ -96,7 +96,7 @@ public static class GameDelegates
         string[] boostIds
     )
     {
-        if (!ShopkeepBrowsing.TryMake(location, player, out ShopkeepBrowsing? browsing, out string? failReason))
+        if (!ShopkeepBrowsing.TryMake(location, player, out ShopkeepBrowsing? browsing, out string? failReason, boostIds: boostIds))
         {
             Game1.drawObjectDialogue(failReason);
             return false;

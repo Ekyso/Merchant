@@ -59,8 +59,8 @@ public sealed record ShopkeepBrowsing(
         Farmer player,
         [NotNullWhen(true)] out ShopkeepBrowsing? browsing,
         [NotNullWhen(false)] out string? failReason,
-        bool getActors = true
-    )
+        bool getActors = true,
+        string[]? boostIds = null)
     {
         browsing = null;
         failReason = null;
@@ -102,6 +102,17 @@ public sealed record ShopkeepBrowsing(
         {
             failReason = I18n.FailReason_NotFarmBuilding();
             return false;
+        }
+        if (boostIds != null)
+        {
+            themeBoostDatas ??= [];
+            foreach (string themeBoost in boostIds)
+            {
+                if (AssetManager.ShopkeepContexts.Get(themeBoost) is ShopkeepThemeBoostData themeBoostData)
+                {
+                    themeBoostDatas.Add(themeBoostData);
+                }
+            }
         }
 
         // tile accessibility
