@@ -46,16 +46,17 @@ public static class Upgrades
         int roboShopkeepLevel = ModEntry.ProgressData.RoboShopkeepLevel;
         if (roboShopkeepLevel >= 20)
             return [];
+        int level = roboShopkeepLevel / 5;
         return
         [
             new ItemQueryResult(
                 new UpgradeSalable(
-                    I18n.Upgrade_Roboshopkeep_Name(roboShopkeepLevel / 5),
+                    I18n.Upgrade_Roboshopkeep_Name(level),
                     I18n.Upgrade_Roboshopkeep_Desc($"{roboShopkeepLevel:P2}"),
                     static () => ModEntry.ProgressData.RoboShopkeepLevel += 5
                 )
                 {
-                    Price = 500000,
+                    Price = 200000 + 50000 * level,
                 }
             ),
         ];

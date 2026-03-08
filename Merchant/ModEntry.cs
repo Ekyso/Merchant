@@ -63,10 +63,20 @@ public sealed class ModEntry : Mod
             "Force quit current merchant shopkeep session",
             ConsoleForceQuit
         );
+        help.ConsoleCommands.Add(
+            "merchant-unusedprog",
+            "Check for unused merchant progress files in global app data",
+            ConsoleUnusedProg
+        );
 
         AssetManager.Register();
         GameDelegates.Register();
         Upgrades.Register();
+    }
+
+    private void ConsoleUnusedProg(string arg1, string[] arg2)
+    {
+        MerchantProgressData.ListProgressForDeletedSaves();
     }
 
     private void ConsoleForceQuit(string arg1, string[] arg2)
@@ -106,8 +116,6 @@ public sealed class ModEntry : Mod
 
         HasBETAS = Helper.ModRegistry.IsLoaded("Spiderbuttons.BETAS");
         HasTDITExtras = Helper.ModRegistry.IsLoaded("DolphINaF.ExtraPortraits");
-
-        MerchantProgressData.ListProgressForDeletedSaves();
     }
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)

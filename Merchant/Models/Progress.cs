@@ -161,6 +161,12 @@ public sealed class MerchantProgressData
     internal static void ListProgressForDeletedSaves()
     {
         string savesFolder = Program.GetSavesFolder();
+        if (!Directory.Exists(savesFolder))
+            return;
+        string progressDataDir = Path.Combine(Constants.DataPath, ".smapi", "mod-data", ModEntry.ModId.ToLower());
+        if (!Directory.Exists(progressDataDir))
+            return;
+
         List<string> saveFiles = [];
         HashSet<ulong> allSaveIds = [];
         foreach (string item in Directory.EnumerateDirectories(savesFolder))
@@ -177,10 +183,9 @@ public sealed class MerchantProgressData
                 }
             }
         }
-        ModEntry.Log($"Found save files:\n\t'{string.Join("\n\t", saveFiles)}'", LogLevel.Info);
+        ModEntry.Log($"Found save files:\n\t{string.Join("\n\t", saveFiles)}", LogLevel.Info);
 
         List<string> progessFileWithoutSave = [];
-        string progressDataDir = Path.Combine(Constants.DataPath, ".smapi", "mod-data", ModEntry.ModId.ToLower());
         foreach (string item in Directory.EnumerateFiles(progressDataDir))
         {
             string[] split = Path.GetFileName(item).Split('_', 3);

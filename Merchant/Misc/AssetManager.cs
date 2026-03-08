@@ -401,7 +401,7 @@ internal static class AssetManager
             Name = RoboShopkeepId,
             DisplayName = $"[LocalizedText {Asset_Strings}:RoboShopkeep_Name]",
             Description = $"[LocalizedText {Asset_Strings}:RoboShopkeep_Desc]",
-            Price = 50000,
+            Price = 100000,
             Fragility = 0,
             CanBePlacedOutdoors = true,
             CanBePlacedIndoors = true,
