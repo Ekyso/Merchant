@@ -164,7 +164,7 @@ public static class Upgrades
                     }
                 )
                 {
-                    Price = 50000,
+                    Price = 25000,
                     Stack = 1,
                 }
             ),
